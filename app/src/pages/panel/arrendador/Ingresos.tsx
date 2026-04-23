@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { movimientosDeUsuario, resumenFinanciero, ingresoPorMes } from '@/mocks/finanzas'
@@ -20,8 +21,16 @@ export function ArrendadorIngresos() {
   const fin = resumenFinanciero(user.id)
   const data = ingresoPorMes(user.id)
   const movs = movimientosDeUsuario(user.id)
-  const activos = useContrataciones((s) =>
-    s.items.filter((c) => c.ofertanteId === user.id && c.deposito && c.deposito > 0 && ['pago_en_escrow', 'en_ejecucion', 'finalizada_pendiente_aprobacion'].includes(c.estado)),
+  const activos = useContrataciones(
+    useShallow((s) =>
+      s.items.filter(
+        (c) =>
+          c.ofertanteId === user.id &&
+          c.deposito &&
+          c.deposito > 0 &&
+          ['pago_en_escrow', 'en_ejecucion', 'finalizada_pendiente_aprobacion'].includes(c.estado),
+      ),
+    ),
   )
   const updateEstado = useContrataciones((s) => s.updateEstado)
   const [retiroOpen, setRetiroOpen] = useState(false)

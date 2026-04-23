@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { useChat } from '@/stores/useChat'
@@ -18,12 +19,16 @@ import { usersById } from '@/mocks/users'
 
 export function PanelHome() {
   const user = useAuth((s) => s.user())!
-  const contrataciones = useContrataciones((s) =>
-    s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id),
+  const contrataciones = useContrataciones(
+    useShallow((s) => s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id)),
   )
-  const conversaciones = useChat((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id)))
-  const notif = useNotificaciones((s) => s.items.filter((n) => n.usuarioId === user.id).slice(0, 5))
-  const resenasPara = useResenas((s) => s.paraUsuario(user.id))
+  const conversaciones = useChat(
+    useShallow((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id))),
+  )
+  const notif = useNotificaciones(
+    useShallow((s) => s.items.filter((n) => n.usuarioId === user.id).slice(0, 5)),
+  )
+  const resenasPara = useResenas(useShallow((s) => s.paraUsuario(user.id)))
 
   const isTrabajador = user.roles.includes('trabajador')
   const isArrendador = user.roles.includes('arrendador')

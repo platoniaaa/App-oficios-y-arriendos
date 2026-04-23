@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useChat } from '@/stores/useChat'
 import { usersById } from '@/mocks/users'
@@ -8,7 +9,9 @@ import { formatRelative } from '@/lib/format'
 
 export function Chats() {
   const user = useAuth((s) => s.user())!
-  const conversaciones = useChat((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id)))
+  const conversaciones = useChat(
+    useShallow((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id))),
+  )
 
   return (
     <div className="space-y-8">

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { resumenFinanciero, ingresoPorMes } from '@/mocks/finanzas'
@@ -25,7 +26,9 @@ export function ArrendadorDashboard() {
   const user = useAuth((s) => s.user())!
   const fin = resumenFinanciero(user.id)
   const chartData = ingresoPorMes(user.id)
-  const contrs = useContrataciones((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo'))
+  const contrs = useContrataciones(
+    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo')),
+  )
   const inventario = herramientas.filter((h) => h.propietarioId === user.id)
 
   const nuevas = contrs.filter((c) => c.estado === 'solicitada').length

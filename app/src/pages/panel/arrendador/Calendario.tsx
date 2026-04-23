@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { herramientas } from '@/mocks/herramientas'
 import { useContrataciones } from '@/stores/useContrataciones'
@@ -9,7 +10,9 @@ import { Select } from '@/components/ui/Input'
 export function ArrendadorCalendario() {
   const user = useAuth((s) => s.user())!
   const todas = herramientas.filter((h) => h.propietarioId === user.id)
-  const contrs = useContrataciones((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo'))
+  const contrs = useContrataciones(
+    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo')),
+  )
   const [filtro, setFiltro] = useState('')
 
   const filtradas = filtro ? todas.filter((h) => h.id === filtro) : todas

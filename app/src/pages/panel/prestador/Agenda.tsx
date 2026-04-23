@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { horarioDefault, bloqueosDeUsuario } from '@/mocks/agenda'
@@ -12,7 +13,7 @@ import { cn } from '@/lib/cn'
 
 export function PrestadorAgenda() {
   const user = useAuth((s) => s.user())!
-  const contrs = useContrataciones((s) => s.items.filter((c) => c.ofertanteId === user.id))
+  const contrs = useContrataciones(useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id)))
   const [bloqueos, setBloqueos] = useState(bloqueosDeUsuario(user.id).map((b) => ({ desde: b.desde, hasta: b.hasta })))
   const [horario, setHorario] = useState<HorarioLaboral[]>(horarioDefault)
 

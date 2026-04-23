@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useNotificaciones } from '@/stores/useNotificaciones'
 import { Bell, MessageCircle, ShieldCheck, Star, FileText, AlertTriangle } from 'lucide-react'
@@ -22,7 +23,7 @@ const icons: Record<TipoNotificacion, ComponentType<{ className?: string }>> = {
 
 export function Notificaciones() {
   const user = useAuth((s) => s.user())!
-  const items = useNotificaciones((s) => s.items.filter((n) => n.usuarioId === user.id))
+  const items = useNotificaciones(useShallow((s) => s.items.filter((n) => n.usuarioId === user.id)))
   const marcarLeida = useNotificaciones((s) => s.marcarLeida)
   const marcarTodas = useNotificaciones((s) => s.marcarTodasLeidas)
 
@@ -42,7 +43,7 @@ export function Notificaciones() {
         <EmptyState title="Sin notificaciones" description="Cuando ocurran eventos en tu cuenta aparecerán acá." />
       ) : (
         <ul className="divide-y divide-navy/10 rounded-2xl border border-navy/10 bg-paper">
-          {items
+          {[...items]
             .sort((a, b) => b.fecha.localeCompare(a.fecha))
             .map((n) => {
               const Icon = icons[n.tipo]

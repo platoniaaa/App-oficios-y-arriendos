@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { users } from '@/mocks/users'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { Avatar } from '@/components/ui/Avatar'
@@ -11,7 +12,7 @@ type Tab = 'verificaciones' | 'disputas' | 'reportes'
 
 export function Admin() {
   const [tab, setTab] = useState<Tab>('verificaciones')
-  const disputas = useContrataciones((s) => s.items.filter((c) => c.estado === 'en_disputa'))
+  const disputas = useContrataciones(useShallow((s) => s.items.filter((c) => c.estado === 'en_disputa')))
 
   return (
     <div className="container-page py-10">

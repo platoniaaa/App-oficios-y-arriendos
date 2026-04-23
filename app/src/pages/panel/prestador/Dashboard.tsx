@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { useResenas } from '@/stores/useResenas'
@@ -27,10 +28,10 @@ export function PrestadorDashboard() {
   const user = useAuth((s) => s.user())!
   const fin = resumenFinanciero(user.id)
   const chartData = ingresoPorMes(user.id)
-  const contrs = useContrataciones((s) =>
-    s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio'),
+  const contrs = useContrataciones(
+    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio')),
   )
-  const resenas = useResenas((s) => s.paraUsuario(user.id).slice(0, 3))
+  const resenas = useResenas(useShallow((s) => s.paraUsuario(user.id).slice(0, 3)))
 
   const nuevas = contrs.filter((c) => c.estado === 'solicitada').length
   const enEjecucion = contrs.filter((c) => c.estado === 'en_ejecucion' || c.estado === 'pago_en_escrow').length

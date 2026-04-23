@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useResenas } from '@/stores/useResenas'
 import { usersById } from '@/mocks/users'
@@ -11,7 +12,7 @@ import { formatRelative } from '@/lib/format'
 
 export function PrestadorResenas() {
   const user = useAuth((s) => s.user())!
-  const resenas = useResenas((s) => s.paraUsuario(user.id))
+  const resenas = useResenas(useShallow((s) => s.paraUsuario(user.id)))
   const [filtro, setFiltro] = useState<number | 'todas'>('todas')
   const [respondiendo, setRespondiendo] = useState<string | null>(null)
   const [texto, setTexto] = useState('')

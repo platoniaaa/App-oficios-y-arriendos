@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { usersById } from '@/mocks/users'
@@ -27,7 +28,9 @@ const tabs: { id: 'todas' | 'activas' | 'finalizadas' | 'canceladas'; label: str
 
 export function Contrataciones() {
   const user = useAuth((s) => s.user())!
-  const items = useContrataciones((s) => s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id))
+  const items = useContrataciones(
+    useShallow((s) => s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id)),
+  )
   const [tab, setTab] = useState<(typeof tabs)[number]['id']>('todas')
 
   const lista = items.filter((c) => tabs.find((t) => t.id === tab)!.filter(c.estado))

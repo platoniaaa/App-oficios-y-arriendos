@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
 import { useResenas } from '@/stores/useResenas'
 import { usersById } from '@/mocks/users'
@@ -10,8 +11,8 @@ import { formatRelative } from '@/lib/format'
 
 export function Resenas() {
   const user = useAuth((s) => s.user())!
-  const recibidas = useResenas((s) => s.paraUsuario(user.id))
-  const dadas = useResenas((s) => s.dePorAutor(user.id))
+  const recibidas = useResenas(useShallow((s) => s.paraUsuario(user.id)))
+  const dadas = useResenas(useShallow((s) => s.dePorAutor(user.id)))
   const [tab, setTab] = useState<'recibidas' | 'dadas'>('recibidas')
   const lista = tab === 'recibidas' ? recibidas : dadas
 

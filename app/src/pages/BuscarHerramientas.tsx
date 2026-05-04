@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Filter, Search, Truck, X, Info } from 'lucide-react'
+import { Filter, Search, Truck, X } from 'lucide-react'
 import { herramientas } from '@/mocks/herramientas'
 import { usersById } from '@/mocks/users'
 import { categoriasHerramientas } from '@/mocks/categorias'
@@ -11,12 +11,8 @@ import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Avatar } from '@/components/ui/Avatar'
-import { useModo } from '@/stores/useModo'
 
 export function BuscarHerramientas() {
-  const modo = useModo((s) => s.modo)
-  const setModo = useModo((s) => s.setModo)
-  const isParticular = modo === 'particular'
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState(params.get('q') ?? '')
   const [cat, setCat] = useState(params.get('cat') ?? '')
@@ -111,24 +107,6 @@ export function BuscarHerramientas() {
 
   return (
     <div className="container-page py-8 md:py-14">
-      {isParticular && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ember/30 bg-ember/5 p-4 text-sm">
-          <div className="flex items-start gap-2 text-navy">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-ember-600" />
-            <p>
-              <strong>Estás viendo arriendo de equipos</strong> — esta sección es para contratistas y empresas. Si buscas alguien que <em>haga</em> el trabajo, ve a{' '}
-              <Link to="/buscar/servicios" className="font-semibold text-ember-600 underline">oficios</Link>.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setModo('profesional')}
-            className="btn-ember btn-sm shrink-0"
-          >
-            Cambiar a modo profesional
-          </button>
-        </div>
-      )}
       <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-ember">Herramientas</p>

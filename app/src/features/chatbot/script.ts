@@ -463,11 +463,6 @@ export const intents: Intent[] = [
   },
 ]
 
-export function intentsParaModo(modo: 'particular' | 'profesional' | null): Intent[] {
-  if (!modo) return intents
-  return intents.filter((i) => i.audiencia === 'ambos' || i.audiencia === modo)
-}
-
 export function matchIntent(texto: string): Intent | null {
   const t = texto.toLowerCase()
   for (const i of intents) {

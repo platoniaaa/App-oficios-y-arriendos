@@ -67,6 +67,27 @@ export function Header() {
 
   const irMisContrataciones = () => nav(user ? '/panel/contrataciones' : '/login')
 
+  const [q, setQ] = useState('')
+  const searchRef = useRef<HTMLInputElement | null>(null)
+
+  function onSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const t = q.trim()
+    nav(t ? `/buscar?q=${encodeURIComponent(t)}` : '/buscar')
+  }
+
+  // Atajo ⌘K / Ctrl+K para enfocar el buscador
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <header className="sticky top-0 z-40 border-b border-navy/10 bg-cream/95 backdrop-blur">
       {/* FILA 1 — Logo + Search + Promo */}
@@ -75,18 +96,30 @@ export function Header() {
           <Logo />
         </Link>
 
-        <button
-          type="button"
-          onClick={() => nav('/buscar')}
-          className="flex flex-1 items-center gap-3 rounded-xl border-2 border-navy/15 bg-white px-4 py-2.5 text-sm text-ink-400 transition hover:border-navy/30 focus:border-navy focus:outline-none"
+        <form
+          onSubmit={onSearchSubmit}
+          className="flex flex-1 items-center gap-3 rounded-xl border-2 border-navy/15 bg-white px-4 py-2 transition focus-within:border-navy"
+          role="search"
         >
-          <Search className="h-5 w-5 text-ink-400" />
-          <span className="flex-1 text-left">
-            <span className="hidden sm:inline">Busca un oficio, herramienta o marca…</span>
-            <span className="sm:hidden">Buscar…</span>
-          </span>
-          <span className="ml-auto hidden font-mono text-[10px] text-ink-300 lg:inline">⌘K</span>
-        </button>
+          <Search className="h-5 w-5 shrink-0 text-ink-400" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Busca un oficio, herramienta o marca…"
+            aria-label="Buscar"
+            className="flex-1 bg-transparent text-sm text-navy placeholder:text-ink-400 focus:outline-none"
+          />
+          <span className="ml-1 hidden font-mono text-[10px] text-ink-300 lg:inline">⌘K</span>
+          <button
+            type="submit"
+            aria-label="Buscar"
+            className="ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-navy text-cream transition hover:bg-navy-700"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+        </form>
 
         <Link
           to="/como-funciona"

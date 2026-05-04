@@ -8,8 +8,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/cn'
 
 const navLinks = [
-  { to: '/buscar/servicios', label: 'Oficios' },
-  { to: '/buscar/herramientas', label: 'Herramientas' },
+  { to: '/buscar', label: 'Buscar' },
   { to: '/asistente', label: 'Asistente IA', accent: true },
   { to: '/como-funciona', label: 'Cómo funciona' },
 ]
@@ -49,7 +48,7 @@ export function Header() {
 
         <button
           type="button"
-          onClick={() => nav('/buscar/servicios')}
+          onClick={() => nav('/buscar')}
           className="hidden md:flex items-center gap-2 rounded-full border-2 border-navy/10 bg-paper px-4 py-2 text-xs text-ink-400 hover:border-navy/30 hover:text-navy lg:w-72"
         >
           <Search className="h-4 w-4" />

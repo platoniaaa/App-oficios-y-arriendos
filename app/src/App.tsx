@@ -3,8 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { PanelLayout } from '@/components/layout/PanelLayout'
 import { useScrollToTop } from '@/hooks/useScrollToTop'
 import { Home } from '@/pages/Home'
-import { BuscarServicios } from '@/pages/BuscarServicios'
-import { BuscarHerramientas } from '@/pages/BuscarHerramientas'
+import { Buscar } from '@/pages/Buscar'
 import { ServicioDetalle } from '@/pages/ServicioDetalle'
 import { HerramientaDetalle } from '@/pages/HerramientaDetalle'
 import { PerfilPublico } from '@/pages/PerfilPublico'
@@ -59,8 +58,9 @@ export function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<Home />} />
-        <Route path="buscar/servicios" element={<BuscarServicios />} />
-        <Route path="buscar/herramientas" element={<BuscarHerramientas />} />
+        <Route path="buscar" element={<Buscar />} />
+        <Route path="buscar/servicios" element={<Navigate to="/buscar?tipo=servicios" replace />} />
+        <Route path="buscar/herramientas" element={<Navigate to="/buscar?tipo=herramientas" replace />} />
         <Route path="servicio/:id" element={<ServicioDetalle />} />
         <Route path="herramienta/:id" element={<HerramientaDetalle />} />
         <Route path="perfil/:userId" element={<PerfilPublico />} />

@@ -28,14 +28,14 @@ export function ServicioDetalle() {
   const startOrGet = useChat((s) => s.startOrGet)
   const paraUsuario = useResenas((s) => s.paraUsuario)
 
-  if (!servicio) return <Navigate to="/buscar/servicios" replace />
+  if (!servicio) return <Navigate to="/buscar?tipo=servicios" replace />
   const trab = usersById[servicio.trabajadorId]
   const resenas = trab ? paraUsuario(trab.id) : []
 
   return (
     <div className="container-page py-8 md:py-12">
       <div className="mb-6 flex items-center gap-1 text-xs font-mono uppercase text-ink-400">
-        <Link to="/buscar/servicios" className="hover:text-navy">Oficios</Link>
+        <Link to="/buscar?tipo=servicios" className="hover:text-navy">Oficios</Link>
         <span>/</span>
         <span>{servicio.oficio}</span>
       </div>

@@ -38,7 +38,7 @@ export function Home() {
               <Link to="/asistente" className="btn-ember btn-lg">
                 <Sparkles className="h-4 w-4" /> Arma tu proyecto con IA
               </Link>
-              <Link to="/buscar/servicios" className="btn-outline btn-lg">
+              <Link to="/buscar?tipo=servicios" className="btn-outline btn-lg">
                 Ver oficios <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -136,7 +136,7 @@ export function Home() {
             <p className="font-mono text-xs uppercase tracking-widest text-ember">01 — Oficios</p>
             <h2 className="font-display text-4xl font-semibold">Por categoría</h2>
           </div>
-          <Link to="/buscar/servicios" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
+          <Link to="/buscar?tipo=servicios" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
             Ver todos <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -144,7 +144,7 @@ export function Home() {
           {oficios.slice(0, 8).map((o) => (
             <Link
               key={o.id}
-              to={`/buscar/servicios?cat=${encodeURIComponent(o.nombre)}`}
+              to={`/buscar?tipo=servicios&cat=${encodeURIComponent(o.nombre)}`}
               className="group relative overflow-hidden rounded-2xl border-2 border-navy/10 bg-paper p-5 transition hover:border-navy hover:shadow-ticket-sm"
             >
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-ember/10 text-ember-600">
@@ -165,7 +165,7 @@ export function Home() {
             <p className="font-mono text-xs uppercase tracking-widest text-ember">02 — Maestros destacados</p>
             <h2 className="font-display text-4xl font-semibold">Contratados {'&'} calificados</h2>
           </div>
-          <Link to="/buscar/servicios" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
+          <Link to="/buscar?tipo=servicios" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
             Explorar <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -242,7 +242,7 @@ export function Home() {
             <p className="font-mono text-xs uppercase tracking-widest text-ember">04 — Arriendo</p>
             <h2 className="font-display text-4xl font-semibold">Herramientas y maquinaria</h2>
           </div>
-          <Link to="/buscar/herramientas" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
+          <Link to="/buscar?tipo=herramientas" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
             Ver catálogo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -269,7 +269,7 @@ export function Home() {
           {categoriasHerramientas.map((c) => (
             <Link
               key={c.id}
-              to={`/buscar/herramientas?cat=${encodeURIComponent(c.nombre)}`}
+              to={`/buscar?tipo=herramientas&cat=${encodeURIComponent(c.nombre)}`}
               className="chip hover:bg-navy hover:text-cream transition"
             >
               <Wrench className="h-3 w-3" /> {c.nombre}
@@ -298,7 +298,7 @@ export function Home() {
           ].map((it) => (
             <Link
               key={it.titulo}
-              to={`/buscar/servicios?cat=${encodeURIComponent(it.cat)}`}
+              to={`/buscar?tipo=servicios&cat=${encodeURIComponent(it.cat)}`}
               className="group rounded-2xl border border-ink-200 bg-white p-5 transition hover:border-ember hover:shadow-card"
             >
               <span className="text-2xl">{it.icon}</span>

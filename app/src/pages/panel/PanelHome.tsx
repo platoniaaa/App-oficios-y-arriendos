@@ -73,7 +73,7 @@ export function PanelHome() {
             title="Aún no tienes contrataciones"
             description="Cuando contrates un servicio o publiques una herramienta, verás el seguimiento acá."
             action={
-              <Link to="/buscar/servicios" className="btn-primary btn-md mt-3">
+              <Link to="/buscar" className="btn-primary btn-md mt-3">
                 Buscar maestros
               </Link>
             }

@@ -29,8 +29,9 @@ export function Footer() {
         <div>
           <h4 className="mb-3 font-mono text-xs uppercase tracking-widest text-cream/60">Explorar</h4>
           <ul className="space-y-2 text-sm">
-            <li><Link className="hover:text-ember" to="/buscar/servicios">Buscar oficios</Link></li>
-            <li><Link className="hover:text-ember" to="/buscar/herramientas">Arrendar herramientas</Link></li>
+            <li><Link className="hover:text-ember" to="/buscar">Buscar todo</Link></li>
+            <li><Link className="hover:text-ember" to="/buscar?tipo=servicios">Oficios</Link></li>
+            <li><Link className="hover:text-ember" to="/buscar?tipo=herramientas">Herramientas</Link></li>
             <li><Link className="hover:text-ember" to="/asistente">Asistente IA</Link></li>
             <li><Link className="hover:text-ember" to="/como-funciona">Cómo funciona</Link></li>
           </ul>

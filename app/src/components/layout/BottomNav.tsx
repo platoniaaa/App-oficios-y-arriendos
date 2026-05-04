@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 const items = [
   { to: '/', label: 'Inicio', icon: Home, exact: true },
-  { to: '/buscar/servicios', label: 'Buscar', icon: Search },
+  { to: '/buscar', label: 'Buscar', icon: Search },
   { to: '/asistente', label: 'Asistente', icon: Sparkles, accent: true },
   { to: '/panel/chats', label: 'Chats', icon: MessageCircle, requireAuth: true },
   { to: '/panel', label: 'Panel', icon: LayoutDashboard, requireAuth: true },

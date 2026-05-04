@@ -26,13 +26,13 @@ export function HerramientaDetalle() {
   const add = useContrataciones((s) => s.add)
   const startOrGet = useChat((s) => s.startOrGet)
 
-  if (!h) return <Navigate to="/buscar/herramientas" replace />
+  if (!h) return <Navigate to="/buscar?tipo=herramientas" replace />
   const owner = usersById[h.propietarioId]
 
   return (
     <div className="container-page py-8 md:py-12">
       <div className="mb-6 flex items-center gap-1 text-xs font-mono uppercase text-ink-400">
-        <Link to="/buscar/herramientas" className="hover:text-navy">Herramientas</Link>
+        <Link to="/buscar?tipo=herramientas" className="hover:text-navy">Herramientas</Link>
         <span>/</span>
         <span>{h.categoria}</span>
       </div>

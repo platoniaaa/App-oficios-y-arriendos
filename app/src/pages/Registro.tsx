@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,7 @@ import { Building2, User2, ArrowRight, ArrowLeft, CheckCircle2, Upload } from 'l
 import { cn } from '@/lib/cn'
 import { formatRut, validateRut } from '@/lib/rut'
 import { useAuth } from '@/stores/useAuth'
+import { useModo } from '@/stores/useModo'
 import type { User, Rol, TipoCuenta } from '@/types'
 import { uid } from '@/lib/mockApi'
 
@@ -58,9 +59,31 @@ const emptyForm: Form = {
 
 export function Registro() {
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<Form>(emptyForm)
+  const modo = useModo((s) => s.modo)
+  const [form, setForm] = useState<Form>(() => {
+    if (modo === 'profesional') {
+      return {
+        ...emptyForm,
+        tipo: 'empresa',
+        intenciones: {
+          contratarServicios: true,
+          ofrecerOficio: false,
+          arrendarHerramientas: true,
+          tomarArriendo: true,
+        },
+      }
+    }
+    return emptyForm
+  })
   const setUser = useAuth((s) => s.setUser)
   const nav = useNavigate()
+
+  // si el modo cambia a mitad de registro, ajusta el tipo por defecto
+  useEffect(() => {
+    if (modo === 'profesional' && form.tipo === 'persona' && step === 0) {
+      setForm((f) => ({ ...f, tipo: 'empresa' }))
+    }
+  }, [modo, form.tipo, step])
 
   function next() {
     setStep((s) => Math.min(s + 1, steps.length - 1))
@@ -149,16 +172,21 @@ export function Registro() {
           <Step title="¿Cómo vas a usar Cuadrilla?" subtitle="Puedes elegir varias opciones. Las puedes cambiar después.">
             <ul className="space-y-2">
               {(
-                [
-                  { key: 'contratarServicios', label: 'Quiero contratar servicios' },
-                  {
-                    key: 'ofrecerOficio',
-                    label: 'Quiero ofrecer mi oficio',
-                    disabled: form.tipo === 'empresa',
-                  },
-                  { key: 'arrendarHerramientas', label: 'Quiero arrendar mis herramientas o maquinarias' },
-                  { key: 'tomarArriendo', label: 'Quiero tomar en arriendo herramientas' },
-                ] as const
+                modo === 'particular'
+                  ? ([
+                      { key: 'contratarServicios', label: 'Quiero contratar servicios para mi casa' },
+                      { key: 'ofrecerOficio', label: 'Quiero ofrecer mi oficio', disabled: form.tipo === 'empresa' },
+                    ] as const)
+                  : ([
+                      { key: 'contratarServicios', label: 'Quiero contratar / subcontratar cuadrillas' },
+                      {
+                        key: 'ofrecerOficio',
+                        label: 'Quiero ofrecer mi oficio',
+                        disabled: form.tipo === 'empresa',
+                      },
+                      { key: 'arrendarHerramientas', label: 'Quiero arrendar mis herramientas o maquinarias' },
+                      { key: 'tomarArriendo', label: 'Quiero tomar en arriendo herramientas' },
+                    ] as const)
               ).map((opt) => {
                 const active = form.intenciones[opt.key]
                 return (

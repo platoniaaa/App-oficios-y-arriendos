@@ -1,11 +1,14 @@
 import type { ChatbotBlock } from '@/types'
 import { fees } from '@/config/brand'
 
+export type AudienciaIntent = 'particular' | 'profesional' | 'ambos'
+
 export interface Intent {
   id: string
   keywords: string[]
   titulo: string
   pasos: Paso[]
+  audiencia: AudienciaIntent
 }
 
 export interface Paso {
@@ -29,6 +32,7 @@ export const intents: Intent[] = [
     id: 'remodel-bano',
     keywords: ['baño', 'remodelar baño', 'bano', 'renovar baño', 'remodelacion baño'],
     titulo: 'Remodelación de baño',
+    audiencia: 'ambos',
     pasos: [
       {
         id: 'p1',
@@ -90,6 +94,7 @@ export const intents: Intent[] = [
     id: 'construir-terraza',
     keywords: ['terraza', 'construir terraza', 'deck', 'quincho'],
     titulo: 'Construcción de terraza',
+    audiencia: 'profesional',
     pasos: [
       {
         id: 'p1',
@@ -150,6 +155,7 @@ export const intents: Intent[] = [
     id: 'fuga-agua',
     keywords: ['fuga', 'agua', 'filtración', 'gotea', 'filtracion'],
     titulo: 'Reparación de fuga de agua',
+    audiencia: 'particular',
     pasos: [
       {
         id: 'p1',
@@ -203,6 +209,7 @@ export const intents: Intent[] = [
     id: 'mudanza',
     keywords: ['mudanza', 'flete', 'trasladar', 'cambiarme de casa'],
     titulo: 'Mudanza residencial',
+    audiencia: 'particular',
     pasos: [
       {
         id: 'p1',
@@ -263,6 +270,7 @@ export const intents: Intent[] = [
     id: 'instalacion-electrica',
     keywords: ['eléctrica', 'electrica', 'ampliación', 'ampliacion', 'tablero', 'enchufes'],
     titulo: 'Instalación eléctrica para ampliación',
+    audiencia: 'ambos',
     pasos: [
       {
         id: 'p1',
@@ -317,7 +325,148 @@ export const intents: Intent[] = [
       },
     ],
   },
+  {
+    id: 'obra-completa',
+    keywords: ['obra', 'ampliación', 'ampliacion', 'cuadrilla completa', 'proyecto', 'cotizar obra', 'subcontratar'],
+    titulo: 'Cotizar obra completa',
+    audiencia: 'profesional',
+    pasos: [
+      {
+        id: 'p1',
+        bot: 'Vamos a armar tu obra. ¿Qué tipo de proyecto estás gestionando?',
+        bloque: {
+          kind: 'chips',
+          preguntaId: 'tipo',
+          opciones: [
+            { id: 'amp', label: 'Ampliación residencial' },
+            { id: 'remodel', label: 'Remodelación integral' },
+            { id: 'nueva', label: 'Construcción nueva' },
+            { id: 'comercial', label: 'Local comercial' },
+          ],
+        },
+        siguiente: 'p2',
+      },
+      {
+        id: 'p2',
+        bot: '¿Cuántos metros cuadrados aproximados?',
+        bloque: {
+          kind: 'chips',
+          preguntaId: 'm2',
+          opciones: [
+            { id: '50', label: 'Hasta 50 m²' },
+            { id: '100', label: '50-100 m²' },
+            { id: '200', label: '100-200 m²' },
+            { id: '+200', label: 'Más de 200 m²' },
+          ],
+        },
+        siguiente: 'p3',
+      },
+      {
+        id: 'p3',
+        bot: '¿Qué especialidades necesitas? Marca todas las que apliquen.',
+        bloque: {
+          kind: 'chips',
+          preguntaId: 'especialidades',
+          opciones: [
+            { id: 'gruesa', label: 'Obra gruesa' },
+            { id: 'electrico', label: 'Eléctrico' },
+            { id: 'gasfit', label: 'Gasfitería' },
+            { id: 'termin', label: 'Terminaciones' },
+          ],
+        },
+        siguiente: 'p4',
+      },
+      {
+        id: 'p4',
+        bot: 'Estas son las cuadrillas con disponibilidad para tu zona y plazo:',
+        bloque: { kind: 'workers', trabajadorIds: ['u-15', 'u-04', 'u-demo-trabajador', 'u-08'] },
+        siguiente: 'p5',
+      },
+      {
+        id: 'p5',
+        bot: 'Y los equipos que necesitarás:',
+        bloque: { kind: 'tools', herramientaIds: ['h-01', 'h-05', 'h-08', 'h-11'] },
+        siguiente: 'p6',
+      },
+      {
+        id: 'p6',
+        bot: 'Cotización inicial por tu obra, lista para revisar:',
+        bloque: cotizar(
+          [
+            { tipo: 'servicio', label: 'Maestro construcción + cuadrilla (15 días)', detalle: '1 maestro + 2 ayudantes', monto: 380000, cantidad: 15 },
+            { tipo: 'servicio', label: 'Eléctrico clase A (jornadas completas)', monto: 180000, cantidad: 4 },
+            { tipo: 'servicio', label: 'Gasfíter (instalaciones)', monto: 95000, cantidad: 5 },
+            { tipo: 'arriendo', label: 'Retroexcavadora 4 días + Bobcat 3 días', monto: 280000, cantidad: 7 },
+            { tipo: 'arriendo', label: 'Andamios + betonera (15 días)', monto: 46000, cantidad: 15 },
+            { tipo: 'materiales', label: 'Materiales estimados (rango referencial)', detalle: 'Hormigón, fierro, terminaciones', monto: 4500000, cantidad: 1 },
+          ],
+          'Ampliación residencial 100 m²',
+        ),
+      },
+    ],
+  },
+  {
+    id: 'subcontratar-cuadrilla',
+    keywords: ['subcontratar', 'cuadrilla', 'maestros', 'cuadrillas para mi obra', 'mas gente'],
+    titulo: 'Subcontratar cuadrilla extra',
+    audiencia: 'profesional',
+    pasos: [
+      {
+        id: 'p1',
+        bot: 'Necesitas refuerzo. ¿Para cuándo y cuántos días?',
+        bloque: {
+          kind: 'chips',
+          preguntaId: 'duracion',
+          opciones: [
+            { id: 'urg', label: 'Urgente (esta semana)' },
+            { id: '7d', label: '1 semana' },
+            { id: '14d', label: '2 semanas' },
+            { id: '30d', label: '1 mes o más' },
+          ],
+        },
+        siguiente: 'p2',
+      },
+      {
+        id: 'p2',
+        bot: '¿Qué especialidad necesitas?',
+        bloque: {
+          kind: 'chips',
+          preguntaId: 'esp',
+          opciones: [
+            { id: 'maestro', label: 'Maestros de construcción' },
+            { id: 'pintor', label: 'Pintores' },
+            { id: 'soldador', label: 'Soldadores' },
+            { id: 'mixto', label: 'Cuadrilla mixta' },
+          ],
+        },
+        siguiente: 'p3',
+      },
+      {
+        id: 'p3',
+        bot: 'Maestros disponibles que ya han trabajado en obras similares:',
+        bloque: { kind: 'workers', trabajadorIds: ['u-15', 'u-08', 'u-18', 'u-05'] },
+        siguiente: 'p4',
+      },
+      {
+        id: 'p4',
+        bot: 'Cotización referencial por una cuadrilla de 3 personas durante 1 semana:',
+        bloque: cotizar(
+          [
+            { tipo: 'servicio', label: 'Maestro construcción (5 días)', monto: 220000, cantidad: 5 },
+            { tipo: 'servicio', label: 'Ayudante 1 (5 días)', monto: 90000, cantidad: 5 },
+            { tipo: 'servicio', label: 'Ayudante 2 (5 días)', monto: 90000, cantidad: 5 },
+          ],
+          'Cuadrilla extra · 5 días',
+        ),
+      },
+    ],
+  },
 ]
+
+export function intentsParaModo(modo: 'particular' | 'profesional' | null): Intent[] {
+  if (!modo) return intents
+  return intents.filter((i) => i.audiencia === 'ambos' || i.audiencia === modo)
+}
 
 export function matchIntent(texto: string): Intent | null {
   const t = texto.toLowerCase()

@@ -1,22 +1,37 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Search, Sparkles, MessageCircle, LayoutDashboard } from 'lucide-react'
+import { Home, Search, Sparkles, MessageCircle, LayoutDashboard, Wrench } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/stores/useAuth'
 import { useChat } from '@/stores/useChat'
-
-const items = [
-  { to: '/', label: 'Inicio', icon: Home, exact: true },
-  { to: '/buscar/servicios', label: 'Buscar', icon: Search },
-  { to: '/asistente', label: 'Asistente', icon: Sparkles, accent: true },
-  { to: '/panel/chats', label: 'Chats', icon: MessageCircle, requireAuth: true },
-  { to: '/panel', label: 'Panel', icon: LayoutDashboard, requireAuth: true },
-]
+import { useShallow } from 'zustand/react/shallow'
+import { useModo } from '@/stores/useModo'
 
 export function BottomNav() {
   const user = useAuth((s) => s.user())
-  const unread = useChat((s) =>
-    user ? s.conversaciones.filter((c) => c.participantes.includes(user.id)).reduce((a, c) => a + (c.noLeidos ?? 0), 0) : 0,
+  const modo = useModo((s) => s.modo)
+  const unread = useChat(
+    useShallow((s) =>
+      user ? s.conversaciones.filter((c) => c.participantes.includes(user.id)).reduce((a, c) => a + (c.noLeidos ?? 0), 0) : 0,
+    ),
   )
+
+  const isProf = modo === 'profesional'
+
+  const items = isProf
+    ? [
+        { to: '/', label: 'Inicio', icon: Home, exact: true },
+        { to: '/buscar/servicios', label: 'Oficios', icon: Search },
+        { to: '/buscar/herramientas', label: 'Equipos', icon: Wrench },
+        { to: '/asistente', label: 'Cotizar', icon: Sparkles, accent: true },
+        { to: '/panel', label: 'Panel', icon: LayoutDashboard, requireAuth: true },
+      ]
+    : [
+        { to: '/', label: 'Inicio', icon: Home, exact: true },
+        { to: '/buscar/servicios', label: 'Buscar', icon: Search },
+        { to: '/asistente', label: 'Asistente', icon: Sparkles, accent: true },
+        { to: '/panel/chats', label: 'Chats', icon: MessageCircle, requireAuth: true },
+        { to: '/panel', label: 'Panel', icon: LayoutDashboard, requireAuth: true },
+      ]
 
   return (
     <nav
@@ -26,12 +41,12 @@ export function BottomNav() {
       <ul className="mx-auto grid max-w-md grid-cols-5">
         {items.map((it) => {
           const Icon = it.icon
-          const to = it.requireAuth && !user ? '/login' : it.to
+          const to = 'requireAuth' in it && it.requireAuth && !user ? '/login' : it.to
           return (
             <li key={it.to} className="relative">
               <NavLink
                 to={to}
-                end={it.exact}
+                end={'exact' in it ? it.exact : false}
                 className={({ isActive }) =>
                   cn(
                     'flex h-16 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide',
@@ -42,7 +57,7 @@ export function BottomNav() {
                 <span
                   className={cn(
                     'relative rounded-full px-3 py-1',
-                    it.accent && 'bg-ember text-cream shadow-ticket-sm',
+                    'accent' in it && it.accent && 'bg-ember text-cream shadow-ticket-sm',
                   )}
                 >
                   <Icon className="h-5 w-5" />

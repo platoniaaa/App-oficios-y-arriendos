@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { Send, Sparkles, Plus, BookOpen, ChevronRight } from 'lucide-react'
 import { useChatbot } from '@/stores/useChatbot'
 import { useAuth } from '@/stores/useAuth'
-import { intents, matchIntent, type Paso } from '@/features/chatbot/script'
+import { useModo } from '@/stores/useModo'
+import { intents, intentsParaModo, matchIntent, type Paso } from '@/features/chatbot/script'
 import { servicios } from '@/mocks/servicios'
 import { herramientas } from '@/mocks/herramientas'
 import { usersById } from '@/mocks/users'
@@ -16,10 +17,13 @@ import { formatCLP } from '@/lib/format'
 import { brand } from '@/config/brand'
 import type { ChatbotBlock, MensajeChatbot } from '@/types'
 
-const saludo = `Hola 👋 Cuéntame qué proyecto tienes en mente. Puedo ayudarte a encontrar a las personas adecuadas y las herramientas que necesitas.`
+const saludoParticular = `Hola 👋 Cuéntame qué necesitas resolver en casa. Te recomiendo el maestro indicado y armamos juntos una cotización referencial.`
+const saludoProfesional = `Hola 👋 Cuéntame de tu obra: tipo, tamaño y plazo. Te armo el paquete completo — cuadrillas, equipos y cotización inicial.`
 
 export function Asistente() {
   const user = useAuth((s) => s.user())
+  const modo = useModo((s) => s.modo)
+  const saludo = modo === 'profesional' ? saludoProfesional : saludoParticular
   const { conversaciones, actualId, nueva, push, setActual, get } = useChatbot()
   const [text, setText] = useState('')
   const [typing, setTyping] = useState(false)
@@ -80,7 +84,7 @@ export function Asistente() {
             {
               kind: 'chips',
               preguntaId: 'sugerencias',
-              opciones: intents.map((i) => ({ id: i.id, label: i.titulo })),
+              opciones: intentsParaModo(modo).map((i) => ({ id: i.id, label: i.titulo })),
             },
           ],
         })
@@ -135,7 +139,7 @@ export function Asistente() {
               <BookOpen className="h-4 w-4" /> Sugerencias
             </h3>
             <ul className="mt-3 space-y-2">
-              {intents.map((i) => (
+              {intentsParaModo(modo).map((i) => (
                 <li key={i.id}>
                   <button
                     type="button"

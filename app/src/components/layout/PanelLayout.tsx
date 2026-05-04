@@ -4,22 +4,29 @@ import { Avatar } from '@/components/ui/Avatar'
 import { LayoutDashboard, Briefcase, FileText, MessageCircle, Bell, Star, UserCog } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useNotificaciones } from '@/stores/useNotificaciones'
+import { useModo } from '@/stores/useModo'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
-
-const links = [
-  { to: '/panel', label: 'Resumen', icon: LayoutDashboard, exact: true },
-  { to: '/panel/perfil', label: 'Mi cuenta', icon: UserCog },
-  { to: '/panel/mis-publicaciones', label: 'Mis publicaciones', icon: Briefcase },
-  { to: '/panel/contrataciones', label: 'Mis contrataciones', icon: FileText },
-  { to: '/panel/chats', label: 'Chats', icon: MessageCircle },
-  { to: '/panel/resenas', label: 'Reseñas', icon: Star },
-  { to: '/panel/notificaciones', label: 'Notificaciones', icon: Bell },
-]
 
 export function PanelLayout() {
   const user = useAuth((s) => s.user())
+  const modo = useModo((s) => s.modo)
   const noLeidas = useNotificaciones((s) => (user ? s.noLeidas(user.id) : 0))
   if (!user) return <Navigate to="/login" replace />
+
+  const tieneRolProductivo = user.roles.includes('trabajador') || user.roles.includes('arrendador')
+  const mostrarPublicaciones = tieneRolProductivo || modo === 'profesional'
+
+  const links = [
+    { to: '/panel', label: 'Resumen', icon: LayoutDashboard, exact: true },
+    { to: '/panel/perfil', label: 'Mi cuenta', icon: UserCog },
+    ...(mostrarPublicaciones
+      ? [{ to: '/panel/mis-publicaciones', label: 'Mis publicaciones', icon: Briefcase }]
+      : []),
+    { to: '/panel/contrataciones', label: 'Mis contrataciones', icon: FileText },
+    { to: '/panel/chats', label: 'Chats', icon: MessageCircle },
+    { to: '/panel/resenas', label: 'Reseñas', icon: Star },
+    { to: '/panel/notificaciones', label: 'Notificaciones', icon: Bell },
+  ]
 
   return (
     <div className="container-page py-8 md:py-12">

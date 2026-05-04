@@ -4,22 +4,25 @@ import { Bell, MessageCircle, Search, Sparkles, UserCircle2, LogOut } from 'luci
 import { Avatar } from '@/components/ui/Avatar'
 import { useAuth } from '@/stores/useAuth'
 import { useNotificaciones } from '@/stores/useNotificaciones'
+import { useModo } from '@/stores/useModo'
 import { useState } from 'react'
 import { cn } from '@/lib/cn'
-
-const navLinks = [
-  { to: '/buscar/servicios', label: 'Oficios' },
-  { to: '/buscar/herramientas', label: 'Herramientas' },
-  { to: '/asistente', label: 'Asistente IA', accent: true },
-  { to: '/como-funciona', label: 'Cómo funciona' },
-]
 
 export function Header() {
   const user = useAuth((s) => s.user())
   const logout = useAuth((s) => s.logout)
+  const modo = useModo((s) => s.modo)
   const noLeidas = useNotificaciones((s) => (user ? s.noLeidas(user.id) : 0))
   const nav = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const isProf = modo === 'profesional'
+  const navLinks = [
+    { to: '/buscar/servicios', label: 'Oficios' },
+    ...(isProf ? [{ to: '/buscar/herramientas', label: 'Herramientas' }] : []),
+    { to: '/asistente', label: isProf ? 'Cotizar obra' : 'Asistente IA', accent: true },
+    { to: '/como-funciona', label: 'Cómo funciona' },
+  ]
 
   return (
     <header className="sticky top-0 z-40 border-b border-navy/10 bg-cream/90 backdrop-blur">

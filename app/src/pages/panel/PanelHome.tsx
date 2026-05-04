@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
+import { useModo } from '@/stores/useModo'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { useChat } from '@/stores/useChat'
 import { useNotificaciones } from '@/stores/useNotificaciones'
@@ -30,8 +31,10 @@ export function PanelHome() {
   )
   const resenasPara = useResenas(useShallow((s) => s.paraUsuario(user.id)))
 
+  const modo = useModo((s) => s.modo)
+  const isProf = modo === 'profesional'
   const isTrabajador = user.roles.includes('trabajador')
-  const isArrendador = user.roles.includes('arrendador')
+  const isArrendador = user.roles.includes('arrendador') && isProf
 
   return (
     <div className="space-y-10">

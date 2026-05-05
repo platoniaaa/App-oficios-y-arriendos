@@ -8,8 +8,8 @@ import { Building2, User2, ArrowRight, ArrowLeft, CheckCircle2, Upload } from 'l
 import { cn } from '@/lib/cn'
 import { formatRut, validateRut } from '@/lib/rut'
 import { useAuth } from '@/stores/useAuth'
-import type { User, Rol, TipoCuenta } from '@/types'
-import { uid } from '@/lib/mockApi'
+import type { Rol, TipoCuenta } from '@/types'
+import type { ProfileRow } from '@/lib/profile'
 
 const steps = ['Tipo', 'Intención', 'Datos', 'Verificación', 'Perfil', 'Confirmación']
 
@@ -59,7 +59,10 @@ const emptyForm: Form = {
 export function Registro() {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<Form>(emptyForm)
-  const setUser = useAuth((s) => s.setUser)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [needsConfirm, setNeedsConfirm] = useState(false)
+  const register = useAuth((s) => s.register)
   const nav = useNavigate()
 
   function next() {
@@ -69,38 +72,85 @@ export function Registro() {
     setStep((s) => Math.max(s - 1, 0))
   }
 
-  function finalizar() {
+  async function finalizar() {
+    setError(null)
+    if (!form.email || !form.password) {
+      setError('Email y contraseña son obligatorios.')
+      return
+    }
+    if (form.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
+      return
+    }
+
     const roles: Rol[] = []
     if (form.intenciones.contratarServicios || form.intenciones.tomarArriendo) roles.push('cliente')
     if (form.intenciones.ofrecerOficio) roles.push('trabajador')
     if (form.intenciones.arrendarHerramientas) roles.push('arrendador')
-    const nuevo: User = {
-      id: uid('u'),
+    if (roles.length === 0) roles.push('cliente')
+
+    const perfil: Partial<ProfileRow> & { nombre: string } = {
       tipo: form.tipo,
       nombre: form.tipo === 'empresa' ? form.razonSocial : form.nombre,
-      apellido: form.tipo === 'persona' ? form.apellido : undefined,
-      razonSocial: form.tipo === 'empresa' ? form.razonSocial : undefined,
-      giro: form.tipo === 'empresa' ? form.giro : undefined,
+      apellido: form.tipo === 'persona' ? form.apellido : null,
+      razon_social: form.tipo === 'empresa' ? form.razonSocial : null,
+      giro: form.tipo === 'empresa' ? form.giro : null,
       rut: form.rut,
-      email: form.email,
       telefono: form.telefono,
-      fotoPerfil: form.fotoPerfil || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(form.nombre || form.razonSocial)}`,
       region: form.region,
       comuna: form.comuna,
-      bio: form.bio,
+      bio: form.bio || null,
+      foto_perfil:
+        form.fotoPerfil ||
+        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+          form.nombre || form.razonSocial,
+        )}`,
       roles,
-      verificacion: {
-        rut: 'pendiente',
-        cedula: 'pendiente',
-        antecedentes: form.intenciones.ofrecerOficio ? 'pendiente' : 'no_aplica',
-        certificaciones: form.intenciones.ofrecerOficio ? 'pendiente' : 'no_aplica',
-      },
-      calificacionPromedio: 0,
-      totalResenas: 0,
-      fechaRegistro: new Date().toISOString(),
+      verif_rut: 'pendiente',
+      verif_cedula: 'pendiente',
+      verif_antecedentes: form.intenciones.ofrecerOficio ? 'pendiente' : 'no_aplica',
+      verif_certificaciones: form.intenciones.ofrecerOficio ? 'pendiente' : 'no_aplica',
+      nuevo_en_plataforma: true,
     }
-    setUser(nuevo)
-    nav('/panel')
+
+    setSubmitting(true)
+    const { user, error } = await register({
+      email: form.email,
+      password: form.password,
+      perfil,
+    })
+    setSubmitting(false)
+
+    if (error === 'CONFIRMAR_EMAIL') {
+      setNeedsConfirm(true)
+      return
+    }
+    if (error) {
+      setError(error)
+      return
+    }
+    if (user) nav('/panel')
+  }
+
+  if (needsConfirm) {
+    return (
+      <div className="container-page max-w-md py-16">
+        <div className="ticket p-6 md:p-8 space-y-4">
+          <h1 className="font-display text-3xl font-semibold">Revisa tu correo</h1>
+          <p className="text-ink-500">
+            Te enviamos un enlace de confirmación a <strong>{form.email}</strong>. Haz clic en él
+            para activar tu cuenta y volver a iniciar sesión.
+          </p>
+          <button
+            type="button"
+            onClick={() => nav('/login')}
+            className="btn-primary btn-lg w-full"
+          >
+            Ir a iniciar sesión
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const regionesOpt = regiones.map((r) => ({ value: r.nombre, label: r.nombre }))
@@ -315,8 +365,14 @@ export function Registro() {
           </Step>
         )}
 
+        {error && (
+          <div className="mt-5 rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+            {error}
+          </div>
+        )}
+
         <div className="mt-8 flex items-center justify-between">
-          <Button variant="ghost" size="md" onClick={prev} disabled={step === 0}>
+          <Button variant="ghost" size="md" onClick={prev} disabled={step === 0 || submitting}>
             <ArrowLeft className="h-4 w-4" /> Atrás
           </Button>
           {step < steps.length - 1 ? (
@@ -324,7 +380,13 @@ export function Registro() {
               Continuar <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="ember" size="md" onClick={finalizar} disabled={!form.termsOk}>
+            <Button
+              variant="ember"
+              size="md"
+              onClick={finalizar}
+              disabled={!form.termsOk || submitting}
+              loading={submitting}
+            >
               <CheckCircle2 className="h-4 w-4" /> Crear cuenta
             </Button>
           )}

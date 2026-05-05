@@ -4,14 +4,13 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Logo } from '@/components/ui/Logo'
 import { useAuth } from '@/stores/useAuth'
-import { Mail, Lock, ArrowRight, HardHat, User2, Truck } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Sparkles, Star } from 'lucide-react'
 
 export function Login() {
   const login = useAuth((s) => s.login)
-  const loginDemo = useAuth((s) => s.loginDemo)
   const nav = useNavigate()
-  const [email, setEmail] = useState('demo-cliente@cuadrilla.cl')
-  const [password, setPassword] = useState('demo')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
@@ -19,10 +18,13 @@ export function Login() {
     e.preventDefault()
     setLoading(true)
     setErr('')
-    const u = await login({ email, password })
+    const { user, error } = await login({ email, password })
     setLoading(false)
-    if (u) nav('/panel')
-    else setErr('Email no encontrado. Prueba con un botón de demo.')
+    if (user) {
+      nav('/panel')
+      return
+    }
+    setErr(error ?? 'No se pudo iniciar sesión.')
   }
 
   return (
@@ -37,29 +39,17 @@ export function Login() {
           nuevo trabajo.
         </p>
 
-        <div className="mt-10 space-y-3">
-          <p className="font-mono text-xs uppercase tracking-widest text-ink-400">Acceso demo rápido</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { role: 'cliente', label: 'Cliente', icon: User2 },
-              { role: 'trabajador', label: 'Trabajador', icon: HardHat },
-              { role: 'arrendador', label: 'Arrendador', icon: Truck },
-            ].map((d) => (
-              <button
-                key={d.role}
-                type="button"
-                className="ticket-sm p-4 text-left hover:bg-cream-deep"
-                onClick={() => {
-                  const u = loginDemo(d.role as 'cliente' | 'trabajador' | 'arrendador')
-                  if (u) nav('/panel')
-                }}
-              >
-                <d.icon className="h-5 w-5 text-ember mb-2" />
-                <p className="font-display text-lg font-semibold">{d.label}</p>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ul className="mt-10 space-y-3 text-sm text-ink-500">
+          <li className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-moss" /> Pagos protegidos en escrow.
+          </li>
+          <li className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-ember" /> Reseñas verificadas.
+          </li>
+          <li className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-navy" /> Asistente IA que arma proyectos completos.
+          </li>
+        </ul>
       </div>
 
       <form onSubmit={submit} className="ticket p-6 md:p-8 space-y-5">
@@ -70,8 +60,9 @@ export function Login() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="tu@correo.cl"
-          prefix=""
           type="email"
+          autoComplete="email"
+          required
         />
         <Input
           label="Contraseña"
@@ -79,21 +70,24 @@ export function Login() {
           onChange={(e) => setPassword(e.target.value)}
           type="password"
           placeholder="••••••••"
+          autoComplete="current-password"
+          required
         />
-        {err && <p className="text-sm text-rust">{err}</p>}
+        {err && (
+          <div className="rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+            {err}
+          </div>
+        )}
         <Button variant="primary" size="lg" className="w-full" loading={loading} type="submit">
           Entrar <ArrowRight className="h-4 w-4" />
         </Button>
         <div className="flex items-center justify-between text-sm">
-          <Link to="/recuperar" className="text-navy hover:text-ember">¿Olvidaste tu clave?</Link>
-          <Link to="/registro" className="font-semibold text-ember hover:underline">Crear cuenta</Link>
-        </div>
-
-        <div className="rule-dashed" />
-
-        <div className="flex flex-wrap gap-2 text-xs text-ink-400">
-          <Mail className="h-3 w-3" /> demo-cliente@cuadrilla.cl
-          <Lock className="h-3 w-3 ml-2" /> cualquier clave funciona en el mock.
+          <Link to="/recuperar" className="text-navy hover:text-ember">
+            ¿Olvidaste tu clave?
+          </Link>
+          <Link to="/registro" className="font-semibold text-ember hover:underline">
+            Crear cuenta
+          </Link>
         </div>
       </form>
     </div>

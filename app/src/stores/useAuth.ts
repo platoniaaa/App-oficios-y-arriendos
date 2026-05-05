@@ -1,66 +1,145 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
-import { users, usersById } from '@/mocks/users'
+import { supabase } from '@/lib/supabase'
+import { fetchProfile, updateProfile, type ProfileRow } from '@/lib/profile'
 
 type Credenciales = { email: string; password: string }
 
-interface AuthState {
-  userId: string | null
-  hydrated: boolean
-  user: () => User | null
-  login: (creds: Credenciales) => Promise<User | null>
-  loginDemo: (role: 'cliente' | 'trabajador' | 'arrendador') => User | null
-  logout: () => void
-  setUser: (u: User) => void
-  upsertVerificaciones: (partial: Partial<User['verificacion']>) => void
+interface RegistroPayload {
+  email: string
+  password: string
+  perfil: Partial<ProfileRow> & { nombre: string }
 }
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      userId: null,
-      hydrated: false,
-      user: () => {
-        const id = get().userId
-        return id ? usersById[id] ?? null : null
-      },
-      login: async ({ email }) => {
-        const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase())
-        await new Promise((r) => setTimeout(r, 300))
-        if (u) set({ userId: u.id })
-        return u ?? null
-      },
-      loginDemo: (role) => {
-        const map: Record<string, string> = {
-          cliente: 'u-demo-cliente',
-          trabajador: 'u-demo-trabajador',
-          arrendador: 'u-demo-arrendador',
-        }
-        const id = map[role]
-        set({ userId: id })
-        return usersById[id] ?? null
-      },
-      logout: () => set({ userId: null }),
-      setUser: (u) => {
-        usersById[u.id] = u
-        set({ userId: u.id })
-      },
-      upsertVerificaciones: (partial) => {
-        const id = get().userId
-        if (!id) return
-        const u = usersById[id]
-        if (!u) return
-        usersById[id] = { ...u, verificacion: { ...u.verificacion, ...partial } }
-        set({ userId: id })
-      },
-    }),
-    {
-      name: 'cuadrilla:auth',
-      partialize: (s) => ({ userId: s.userId }),
-      onRehydrateStorage: () => (state) => {
-        if (state) state.hydrated = true
-      },
-    },
-  ),
-)
+interface AuthState {
+  userId: string | null
+  currentUser: User | null
+  loading: boolean
+  hydrated: boolean
+  /** Inicializa la sesión y suscribe a cambios. Llamar una vez al boot. */
+  init: () => Promise<() => void>
+  /** Compatibilidad: el código viejo usa `useAuth(s => s.user())`. */
+  user: () => User | null
+  login: (creds: Credenciales) => Promise<{ user: User | null; error: string | null }>
+  register: (payload: RegistroPayload) => Promise<{ user: User | null; error: string | null }>
+  logout: () => Promise<void>
+  refresh: () => Promise<void>
+  setUser: (u: User) => void
+  upsertVerificaciones: (partial: Partial<User['verificacion']>) => Promise<void>
+}
+
+export const useAuth = create<AuthState>()((set, get) => ({
+  userId: null,
+  currentUser: null,
+  loading: false,
+  hydrated: false,
+
+  user: () => get().currentUser,
+
+  init: async () => {
+    const { data } = await supabase.auth.getSession()
+    const session = data.session
+    if (session?.user) {
+      const u = await fetchProfile(session.user.id)
+      set({ userId: session.user.id, currentUser: u, hydrated: true })
+    } else {
+      set({ userId: null, currentUser: null, hydrated: true })
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, sess) => {
+      if (sess?.user) {
+        const u = await fetchProfile(sess.user.id)
+        set({ userId: sess.user.id, currentUser: u })
+      } else {
+        set({ userId: null, currentUser: null })
+      }
+    })
+    return () => sub.subscription.unsubscribe()
+  },
+
+  login: async ({ email, password }) => {
+    set({ loading: true })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error || !data.user) {
+      set({ loading: false })
+      return { user: null, error: traduceError(error?.message) }
+    }
+    const u = await fetchProfile(data.user.id)
+    set({ userId: data.user.id, currentUser: u, loading: false })
+    return { user: u, error: null }
+  },
+
+  register: async ({ email, password, perfil }) => {
+    set({ loading: true })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { nombre: perfil.nombre } },
+    })
+    if (error) {
+      set({ loading: false })
+      return { user: null, error: traduceError(error.message) }
+    }
+    if (!data.user) {
+      set({ loading: false })
+      return { user: null, error: 'Error inesperado al registrar.' }
+    }
+
+    // El trigger en BD ya creó el row en profiles con email+nombre. Actualizamos el resto.
+    if (Object.keys(perfil).length > 1) {
+      try {
+        await updateProfile(data.user.id, { ...perfil, email })
+      } catch (e) {
+        console.warn('[register] profile patch error', e)
+      }
+    }
+
+    // Si Supabase pide confirmar email, no hay session aún.
+    if (!data.session) {
+      set({ loading: false })
+      return { user: null, error: 'CONFIRMAR_EMAIL' }
+    }
+
+    const u = await fetchProfile(data.user.id)
+    set({ userId: data.user.id, currentUser: u, loading: false })
+    return { user: u, error: null }
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut()
+    set({ userId: null, currentUser: null })
+  },
+
+  refresh: async () => {
+    const id = get().userId
+    if (!id) return
+    const u = await fetchProfile(id)
+    set({ currentUser: u })
+  },
+
+  setUser: (u) => set({ currentUser: u, userId: u.id }),
+
+  upsertVerificaciones: async (partial) => {
+    const id = get().userId
+    if (!id) return
+    const patch: Partial<ProfileRow> = {}
+    if (partial.rut) patch.verif_rut = partial.rut
+    if (partial.cedula) patch.verif_cedula = partial.cedula
+    if (partial.antecedentes) patch.verif_antecedentes = partial.antecedentes
+    if (partial.certificaciones) patch.verif_certificaciones = partial.certificaciones
+    await updateProfile(id, patch)
+    await get().refresh()
+  },
+}))
+
+// Traducción de mensajes de Supabase a español
+function traduceError(msg?: string): string {
+  if (!msg) return 'Error desconocido.'
+  if (msg.includes('Invalid login credentials')) return 'Email o contraseña incorrectos.'
+  if (msg.includes('Email not confirmed')) return 'Aún no confirmas tu email. Revisa tu bandeja.'
+  if (msg.includes('User already registered')) return 'Ya hay una cuenta con ese email.'
+  if (msg.includes('Password should be at least'))
+    return 'La contraseña debe tener al menos 6 caracteres.'
+  if (msg.includes('rate limit')) return 'Demasiados intentos, espera un minuto.'
+  return msg
+}

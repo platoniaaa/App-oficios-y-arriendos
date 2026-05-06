@@ -22,8 +22,7 @@ import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/cn'
 
 const navLinks = [
-  { to: '/buscar?tipo=servicios', label: 'Oficios' },
-  { to: '/buscar?tipo=herramientas', label: 'Herramientas' },
+  { to: '/buscar', label: 'Contratar' },
   { to: '/asistente', label: 'Asistente IA', accent: true },
   { to: '/como-funciona', label: 'Cómo funciona' },
 ]

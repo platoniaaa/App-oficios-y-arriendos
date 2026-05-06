@@ -301,12 +301,26 @@ export function Buscar() {
         <section>
           {resultados.length === 0 ? (
             <EmptyState
-              title="Sin resultados"
-              description="Ajusta los filtros o pregúntale al asistente IA qué se ajusta a tu proyecto."
+              title={
+                items.length === 0
+                  ? 'La plataforma está arrancando'
+                  : 'Sin resultados con esos filtros'
+              }
+              description={
+                items.length === 0
+                  ? 'Aún no hay oficios ni equipos publicados. Si tienes un oficio o herramienta para arrendar, sé de los primeros en publicar.'
+                  : 'Ajusta los filtros o pregúntale al asistente IA qué se ajusta a tu proyecto.'
+              }
               action={
-                <Link to="/asistente" className="btn-ember btn-md mt-3">
-                  <Zap className="h-4 w-4" /> Preguntar al asistente
-                </Link>
+                items.length === 0 ? (
+                  <Link to="/registro" className="btn-ember btn-md mt-3">
+                    Crear cuenta y publicar
+                  </Link>
+                ) : (
+                  <Link to="/asistente" className="btn-ember btn-md mt-3">
+                    <Zap className="h-4 w-4" /> Preguntar al asistente
+                  </Link>
+                )
               }
             />
           ) : (

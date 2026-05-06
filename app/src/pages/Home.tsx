@@ -1,18 +1,15 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Sparkles, MessageSquare, Star, Wrench, Hammer } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Sparkles, MessageSquare, Star, Wrench, Hammer, UserPlus } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
-import { Avatar } from '@/components/ui/Avatar'
 import { servicios } from '@/mocks/servicios'
 import { herramientas } from '@/mocks/herramientas'
-import { usersById } from '@/mocks/users'
 import { oficios, categoriasHerramientas } from '@/mocks/categorias'
-import { StarRating } from '@/components/ui/StarRating'
 import { formatCLP } from '@/lib/format'
 import { PriceTag } from '@/components/ui/PriceTag'
 
 export function Home() {
-  const trabajadoresTop = servicios.slice(0, 4)
-  const herramientasTop = herramientas.slice(0, 4)
+  const hayServicios = servicios.length > 0
+  const hayHerramientas = herramientas.length > 0
 
   return (
     <div>
@@ -60,18 +57,17 @@ export function Home() {
 
           <div className="md:col-span-5 relative">
             <div className="relative mx-auto max-w-sm">
-              <div className="ticket rotate-[-2deg] p-4 relative z-10">
+              {/* Ticket ilustrativo del flujo escrow — datos genéricos, no son un usuario real */}
+              <div className="ticket rotate-[-2deg] p-4 relative z-10" aria-label="Ejemplo de ticket de contratación">
                 <div className="flex items-center justify-between border-b border-dashed border-navy/30 pb-3 text-xs font-mono uppercase">
-                  <span>Ticket · #CL-0412</span>
+                  <span>Ejemplo · ticket de escrow</span>
                   <span className="stamp">Escrow</span>
                 </div>
-                <div className="py-4 flex items-center gap-3">
-                  <Avatar src={usersById['u-demo-trabajador']?.fotoPerfil} name="Pedro" size="lg" />
-                  <div>
-                    <p className="font-display text-2xl font-semibold">Pedro Muñoz</p>
-                    <p className="text-sm text-ink-500">Gasfíter · 14 años</p>
-                    <StarRating value={4.8} count={87} size="sm" />
-                  </div>
+                <div className="py-4 space-y-2 text-sm">
+                  <p className="font-mono text-[10px] uppercase text-ink-400">Servicio</p>
+                  <p className="font-display text-2xl font-semibold leading-tight">
+                    Reparación de filtración en baño
+                  </p>
                 </div>
                 <div className="rule-dashed" />
                 <div className="grid grid-cols-2 gap-3 py-3 text-sm">
@@ -81,22 +77,22 @@ export function Home() {
                   </div>
                   <div>
                     <p className="font-mono text-[10px] uppercase text-ink-400">Cobertura</p>
-                    <p className="font-semibold">Maipú · Santiago</p>
+                    <p className="font-semibold">Tu comuna</p>
                   </div>
                 </div>
                 <div className="rule-dashed" />
                 <div className="pt-3 flex items-center gap-2 text-xs font-semibold text-moss">
-                  <ShieldCheck className="h-4 w-4" /> Pago liberado al aprobar
+                  <ShieldCheck className="h-4 w-4" /> Tu pago se libera al aprobar el trabajo
                 </div>
               </div>
 
               <div className="ticket-sm rotate-[4deg] absolute -right-6 top-8 w-56 p-4 bg-navy text-cream">
                 <div className="flex items-center justify-between text-[10px] font-mono uppercase text-cream/60">
                   <span>Arriendo</span>
-                  <span>Día</span>
+                  <span>Por día</span>
                 </div>
                 <p className="mt-2 font-display text-base leading-tight">
-                  Retro Cat 420F <br /> con operador
+                  Maquinaria <br /> con operador
                 </p>
                 <PriceTag value={280000} unit="día" size="sm" className="mt-3 text-ember" />
               </div>
@@ -158,57 +154,29 @@ export function Home() {
         </div>
       </section>
 
-      {/* TRABAJADORES DESTACADOS */}
-      <section className="container-page py-16">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-ember">02 — Maestros destacados</p>
-            <h2 className="font-display text-4xl font-semibold">Contratados {'&'} calificados</h2>
-          </div>
-          <Link to="/buscar?tipo=servicios" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
-            Explorar <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {trabajadoresTop.map((s) => {
-            const u = usersById[s.trabajadorId]
-            return (
-              <Link
-                key={s.id}
-                to={`/servicio/${s.id}`}
-                className="card group relative overflow-hidden p-0"
-              >
-                <div className="aspect-[4/3] w-full overflow-hidden bg-cream-deep">
-                  <img
-                    src={s.galeriaTrabajos[0]}
-                    alt={s.oficio}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar src={u?.fotoPerfil} name={u?.nombre} size="sm" />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">{u?.nombre} {u?.apellido}</p>
-                      <p className="text-xs text-ink-400">{s.oficio}</p>
-                    </div>
-                  </div>
-                  <StarRating value={s.calificacion} count={s.totalTrabajosRealizados} size="sm" />
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="chip bg-cream-soft">{u?.comuna}</span>
-                    {s.tarifaReferencia.monto ? (
-                      <PriceTag value={s.tarifaReferencia.monto} unit={s.tarifaReferencia.tipo} size="sm" />
-                    ) : (
-                      <span className="font-mono text-xs text-ink-400">A convenir</span>
-                    )}
-                  </div>
-                </div>
+      {/* TRABAJADORES DESTACADOS o llamado a sumar maestros */}
+      {!hayServicios && (
+        <section className="container-page py-16">
+          <div className="rounded-3xl border-2 border-dashed border-navy/20 bg-cream-soft p-10 text-center">
+            <UserPlus className="mx-auto h-10 w-10 text-ember" />
+            <h2 className="mt-4 font-display text-3xl font-semibold">
+              Sé uno de los primeros maestros en Cuadrilla
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg text-ink-500">
+              Estamos arrancando. Si ofreces un oficio, publica tu perfil ahora y aparece
+              destacado para los primeros clientes que lleguen a la plataforma.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link to="/registro" className="btn-ember btn-md">
+                Crear cuenta gratis
               </Link>
-            )
-          })}
-        </div>
-      </section>
+              <Link to="/como-funciona" className="btn-outline btn-md">
+                Cómo funciona
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CÓMO FUNCIONA */}
       <section className="bg-navy text-cream py-20">
@@ -235,37 +203,24 @@ export function Home() {
         </div>
       </section>
 
-      {/* HERRAMIENTAS */}
+      {/* HERRAMIENTAS por categoría (sin grid de productos hasta que haya inventario real) */}
       <section className="container-page py-16">
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-ember">04 — Arriendo</p>
             <h2 className="font-display text-4xl font-semibold">Herramientas y maquinaria</h2>
+            {!hayHerramientas && (
+              <p className="mt-2 text-sm text-ink-500">
+                ¿Tienes equipos sin uso? Publícalos y genera ingresos.
+              </p>
+            )}
           </div>
           <Link to="/buscar?tipo=herramientas" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold hover:text-ember">
             Ver catálogo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {herramientasTop.map((h) => (
-            <Link key={h.id} to={`/herramienta/${h.id}`} className="card group p-0 overflow-hidden">
-              <div className="aspect-[4/3] overflow-hidden bg-cream-deep">
-                <img src={h.fotos[0]} alt={h.titulo} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
-              </div>
-              <div className="p-4 space-y-2">
-                <p className="font-mono text-[10px] uppercase text-ink-400">{h.categoria}</p>
-                <h3 className="font-display text-lg leading-tight font-semibold">{h.titulo}</h3>
-                <div className="flex items-center justify-between pt-1">
-                  <PriceTag value={h.tarifa.porDia} unit="día" size="sm" />
-                  <StarRating value={h.calificacion} size="sm" showNumber />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-10 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {categoriasHerramientas.map((c) => (
             <Link
               key={c.id}
@@ -276,6 +231,17 @@ export function Home() {
             </Link>
           ))}
         </div>
+
+        {!hayHerramientas && (
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-200 bg-white p-5">
+            <p className="text-sm text-ink-500">
+              <strong className="text-navy">Aún no hay equipos publicados.</strong> Sé el primero en arrendar tu maquinaria.
+            </p>
+            <Link to="/registro" className="btn-primary btn-sm">
+              Publicar mi equipo
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* LO MÁS PEDIDO */}

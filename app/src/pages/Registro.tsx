@@ -299,15 +299,27 @@ export function Registro() {
         )}
 
         {step === 3 && (
-          <Step title="Verificación" subtitle="Subimos tus documentos para validarlos. Es simulado — no se sube nada real.">
-            <Uploader label="Cédula de identidad (anverso y reverso)" onChange={() => setForm({ ...form, verificacion: { ...form.verificacion, cedulaArchivo: 'cedula.jpg' } })} archivo={form.verificacion.cedulaArchivo} />
-            {form.intenciones.ofrecerOficio && (
-              <Uploader
-                label="Certificaciones de oficio (opcional)"
-                onChange={() => setForm({ ...form, verificacion: { ...form.verificacion, certArchivo: 'cert.pdf' } })}
-                archivo={form.verificacion.certArchivo}
-              />
-            )}
+          <Step
+            title="Verificación"
+            subtitle="Después de crear tu cuenta podrás subir tu cédula y certificaciones desde tu panel. Por ahora solo confirmamos los permisos."
+          >
+            <div className="rounded-2xl border border-ink-200 bg-cream-soft p-4 text-sm text-ink-500">
+              <p className="font-semibold text-navy">¿Qué validamos?</p>
+              <ul className="mt-2 space-y-1">
+                <li>• <strong>RUT</strong> y <strong>cédula de identidad</strong> — para todas las cuentas.</li>
+                {form.intenciones.ofrecerOficio && (
+                  <>
+                    <li>• <strong>Antecedentes</strong> — porque vas a ofrecer servicios.</li>
+                    <li>• <strong>Certificaciones de oficio</strong> — opcional, sube las que tengas.</li>
+                  </>
+                )}
+              </ul>
+              <p className="mt-3 text-xs">
+                Estos documentos los subirás desde <em>Mi cuenta</em> en tu panel después de crear la
+                cuenta. Un equipo los revisa y aprueba.
+              </p>
+            </div>
+
             <label className="mt-4 flex items-start gap-2 rounded-xl border-2 border-navy/10 p-3 text-sm">
               <input
                 type="checkbox"
@@ -317,14 +329,17 @@ export function Registro() {
                   setForm({ ...form, verificacion: { ...form.verificacion, autoriza: e.target.checked } })
                 }
               />
-              Autorizo a Cuadrilla a consultar mis antecedentes en fuentes oficiales.
+              Autorizo a Cuadrilla a consultar mis antecedentes en fuentes oficiales cuando suba mis
+              documentos.
             </label>
           </Step>
         )}
 
         {step === 4 && (
-          <Step title="Foto de perfil y bio (opcional)">
-            <Uploader label="Foto de perfil" onChange={() => setForm({ ...form, fotoPerfil: `https://i.pravatar.cc/240?img=${Math.ceil(Math.random() * 70)}` })} archivo={form.fotoPerfil ? 'foto cargada' : undefined} />
+          <Step
+            title="Bio (opcional)"
+            subtitle="Tu foto la subirás desde tu panel cuando entres. Por ahora cuéntanos un poco sobre ti."
+          >
             <Textarea
               label="Cuéntanos brevemente sobre ti"
               value={form.bio}

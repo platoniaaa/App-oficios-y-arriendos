@@ -161,9 +161,9 @@ export function PerfilPublico() {
             <Button
               variant="ember"
               size="lg"
-              onClick={() => {
+              onClick={async () => {
                 if (!me) return nav('/login')
-                const conv = startOrGet(me.id, u.id)
+                const conv = await startOrGet(me.id, u.id)
                 nav(`/panel/chats/${conv.id}`)
               }}
             >
@@ -516,9 +516,9 @@ export function PerfilPublico() {
           <Button
             variant="outline"
             size="md"
-            onClick={() => {
+            onClick={async () => {
               if (!me) return nav('/login')
-              const conv = startOrGet(me.id, u.id)
+              const conv = await startOrGet(me.id, u.id)
               nav(`/panel/chats/${conv.id}`)
             }}
           >

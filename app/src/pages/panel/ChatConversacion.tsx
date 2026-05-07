@@ -1,46 +1,82 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { useChat } from '@/stores/useChat'
-import { usersById } from '@/mocks/users'
 import { Avatar } from '@/components/ui/Avatar'
 import { Send, Paperclip, ArrowLeft, FileText } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatRelative } from '@/lib/format'
+import {
+  getConversacion,
+  listMensajes,
+  enviarMensaje,
+  marcarLeidos,
+  subscribeToMensajes,
+} from '@/lib/queries/chat'
+import { getContratacion } from '@/lib/queries/contrataciones'
+import { getProfile } from '@/lib/queries/perfiles'
+import type { Conversacion, MensajeChat, User, Contratacion } from '@/types'
 
 export function ChatConversacion() {
   const { id } = useParams()
   const user = useAuth((s) => s.user())!
-  const { conversaciones, mensajes, enviar, simularRespuesta, marcarLeidos } = useChat()
-  const contratacion = null as { id: string } | null // TODO: fetch contratación cuando migremos chat a Supabase
+  const [conv, setConv] = useState<Conversacion | null>(null)
+  const [otro, setOtro] = useState<User | null>(null)
+  const [contratacion, setContratacion] = useState<Contratacion | null>(null)
+  const [msgs, setMsgs] = useState<MensajeChat[]>([])
   const [texto, setTexto] = useState('')
+  const [loading, setLoading] = useState(true)
   const listRef = useRef<HTMLDivElement | null>(null)
 
-  const conv = conversaciones.find((c) => c.id === id)
-  const msgs = useMemo(
-    () => mensajes.filter((m) => m.conversacionId === id).sort((a, b) => a.fecha.localeCompare(b.fecha)),
-    [mensajes, id],
-  )
-
   useEffect(() => {
-    if (id) marcarLeidos(id)
-  }, [id, marcarLeidos])
+    if (!id) return
+    let unsub: (() => void) | undefined
+    ;(async () => {
+      const c = await getConversacion(id, user.id)
+      if (!c) {
+        setLoading(false)
+        return
+      }
+      setConv(c)
+      const otroId = c.participantes.find((p) => p !== user.id)!
+      const [perfil, mensajesIniciales, contr] = await Promise.all([
+        getProfile(otroId),
+        listMensajes(c.id),
+        c.contratacionId ? getContratacion(c.contratacionId) : Promise.resolve(null),
+      ])
+      setOtro(perfil)
+      setMsgs(mensajesIniciales)
+      setContratacion(contr)
+      setLoading(false)
+      await marcarLeidos(c.id, user.id)
+      unsub = subscribeToMensajes(c.id, (m) => {
+        setMsgs((prev) => (prev.find((x) => x.id === m.id) ? prev : [...prev, m]))
+        if (m.emisorId !== user.id) marcarLeidos(c.id, user.id)
+      })
+    })()
+    return () => unsub?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user.id])
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [msgs.length])
 
+  if (loading) return <div className="text-center text-ink-400 py-12">Cargando…</div>
   if (!id || !conv) return <Navigate to="/panel/chats" replace />
 
-  const otroId = conv.participantes.find((p) => p !== user.id)!
-  const otro = usersById[otroId]
-
-  function onSend(e: React.FormEvent) {
+  async function onSend(e: React.FormEvent) {
     e.preventDefault()
-    if (!texto.trim()) return
-    enviar(id!, user.id, texto.trim())
+    if (!texto.trim() || !conv) return
+    const t = texto.trim()
     setTexto('')
-    simularRespuesta(id!, user.id)
+    try {
+      await enviarMensaje(conv.id, user.id, t)
+      // El insert llega también por Realtime, pero por si acaso lo agregamos optimista:
+      // (subscribe deduplica por id)
+    } catch (err) {
+      console.error(err)
+      setTexto(t)
+    }
   }
 
   return (
@@ -51,7 +87,9 @@ export function ChatConversacion() {
         </Link>
         <Avatar src={otro?.fotoPerfil} name={otro?.nombre} size="md" />
         <div className="min-w-0 flex-1">
-          <Link to={`/perfil/${otro?.id}`} className="font-semibold hover:underline">{otro?.nombre}</Link>
+          <Link to={`/perfil/${otro?.id}`} className="font-semibold hover:underline">
+            {otro?.nombre ?? 'Usuario'}
+          </Link>
           <p className="text-xs text-ink-400">En línea hace poco</p>
         </div>
       </header>
@@ -62,23 +100,22 @@ export function ChatConversacion() {
           className="flex items-center gap-2 border-b border-navy/10 bg-ember/10 px-4 py-2 text-xs font-semibold text-ember-600 hover:bg-ember/20"
         >
           <FileText className="h-4 w-4" />
-          Conversación vinculada a la contratación #{contratacion.id}
+          Conversación vinculada a la contratación
         </Link>
       )}
 
-      <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto bg-grain bg-cream-soft/50 p-4">
+      <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto bg-cream-soft/50 p-4">
         {msgs.map((m) => {
           const mine = m.emisorId === user.id
           return (
-            <div
-              key={m.id}
-              className={cn('flex items-end gap-2', mine ? 'justify-end' : 'justify-start')}
-            >
+            <div key={m.id} className={cn('flex items-end gap-2', mine ? 'justify-end' : 'justify-start')}>
               {!mine && <Avatar src={otro?.fotoPerfil} name={otro?.nombre} size="xs" />}
               <div
                 className={cn(
                   'max-w-[75%] rounded-2xl px-4 py-2 shadow-soft',
-                  mine ? 'rounded-br-sm bg-navy text-cream' : 'rounded-bl-sm bg-paper border border-navy/10',
+                  mine
+                    ? 'rounded-br-sm bg-navy text-cream'
+                    : 'rounded-bl-sm bg-paper border border-navy/10',
                 )}
               >
                 <p className="text-sm whitespace-pre-line">{m.texto}</p>
@@ -90,7 +127,9 @@ export function ChatConversacion() {
           )
         })}
         {msgs.length === 0 && (
-          <p className="text-center text-sm text-ink-400 italic py-10">Envía el primer mensaje para iniciar la conversación.</p>
+          <p className="text-center text-sm text-ink-400 italic py-10">
+            Envía el primer mensaje para iniciar la conversación.
+          </p>
         )}
       </div>
 

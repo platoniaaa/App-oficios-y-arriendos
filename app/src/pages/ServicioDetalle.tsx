@@ -104,10 +104,10 @@ export function ServicioDetalle() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => {
+                onClick={async () => {
                   if (!user) return nav('/login')
                   if (!trab) return
-                  const conv = startOrGet(user.id, trab.id)
+                  const conv = await startOrGet(user.id, trab.id)
                   nav(`/panel/chats/${conv.id}`)
                 }}
               >

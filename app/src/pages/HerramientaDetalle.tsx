@@ -141,10 +141,10 @@ export function HerramientaDetalle() {
               variant="outline"
               size="md"
               className="mt-2 w-full"
-              onClick={() => {
+              onClick={async () => {
                 if (!user) return nav('/login')
                 if (!owner) return
-                const conv = startOrGet(user.id, owner.id)
+                const conv = await startOrGet(user.id, owner.id)
                 nav(`/panel/chats/${conv.id}`)
               }}
             >

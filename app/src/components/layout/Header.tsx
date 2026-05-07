@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { useAuth } from '@/stores/useAuth'
-import { useNotificaciones } from '@/stores/useNotificaciones'
+import { useNotifCount } from '@/hooks/useNotifCount'
 import { UbicacionSelector } from '@/components/feature/UbicacionSelector'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/cn'
@@ -30,7 +30,7 @@ const navLinks = [
 export function Header() {
   const user = useAuth((s) => s.user())
   const logout = useAuth((s) => s.logout)
-  const noLeidas = useNotificaciones((s) => (user ? s.noLeidas(user.id) : 0))
+  const noLeidas = useNotifCount(user?.id)
   const nav = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [publicarOpen, setPublicarOpen] = useState(false)

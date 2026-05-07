@@ -151,9 +151,9 @@ export function ContratacionDetalle() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   if (!contraparte) return
-                  const conv = startOrGet(user.id, contraparte.id)
+                  const conv = await startOrGet(user.id, contraparte.id)
                   nav(`/panel/chats/${conv.id}`)
                 }}
               >

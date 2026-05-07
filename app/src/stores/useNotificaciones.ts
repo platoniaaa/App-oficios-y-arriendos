@@ -1,35 +1,32 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { Notificacion } from '@/types'
-import { notificacionesSeed } from '@/mocks/notificaciones'
-import { uid } from '@/lib/mockApi'
+// Adaptador hacia las queries reales de Supabase.
+// `push` es fire-and-forget. Para el contador "no leídas" usar
+// el hook useNotifCount() con suscripción Realtime (más abajo).
+import { pushNotificacion } from '@/lib/queries/notificaciones'
+import type { TipoNotificacion } from '@/types'
 
-interface State {
-  items: Notificacion[]
-  push: (n: Omit<Notificacion, 'id' | 'fecha' | 'leida'>) => void
-  marcarLeida: (id: string) => void
-  marcarTodasLeidas: (usuarioId: string) => void
-  noLeidas: (usuarioId: string) => number
+interface PushInput {
+  usuarioId: string
+  tipo: TipoNotificacion
+  titulo: string
+  texto?: string
+  link?: string
 }
 
-export const useNotificaciones = create<State>()(
-  persist(
-    (set, get) => ({
-      items: notificacionesSeed,
-      push: (n) => {
-        const nueva: Notificacion = {
-          ...n,
-          id: uid('n'),
-          fecha: new Date().toISOString(),
-          leida: false,
-        }
-        set((s) => ({ items: [nueva, ...s.items] }))
-      },
-      marcarLeida: (id) => set((s) => ({ items: s.items.map((n) => (n.id === id ? { ...n, leida: true } : n)) })),
-      marcarTodasLeidas: (userId) =>
-        set((s) => ({ items: s.items.map((n) => (n.usuarioId === userId ? { ...n, leida: true } : n)) })),
-      noLeidas: (userId) => get().items.filter((n) => n.usuarioId === userId && !n.leida).length,
+interface State {
+  push: (n: PushInput) => void
+}
+
+const store: State = {
+  push: (n) =>
+    void pushNotificacion({
+      usuario_id: n.usuarioId,
+      tipo: n.tipo,
+      titulo: n.titulo,
+      texto: n.texto,
+      link: n.link,
     }),
-    { name: 'cuadrilla:notificaciones' },
-  ),
-)
+}
+
+export function useNotificaciones<T = State>(selector?: (s: State) => T): T {
+  return selector ? selector(store) : (store as unknown as T)
+}

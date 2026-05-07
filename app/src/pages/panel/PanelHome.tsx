@@ -1,8 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useChat } from '@/stores/useChat'
-import { useNotificaciones } from '@/stores/useNotificaciones'
+import { listConversaciones } from '@/lib/queries/chat'
+import { listNotificaciones } from '@/lib/queries/notificaciones'
 import { Avatar } from '@/components/ui/Avatar'
 import { VerificationBadge } from '@/components/ui/Badge'
 import { StarRating } from '@/components/ui/StarRating'
@@ -13,10 +13,11 @@ import { formatRelative } from '@/lib/format'
 import { ArrowRight, Plus, Sparkles } from 'lucide-react'
 import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
 import { listResenasParaUsuario } from '@/lib/queries/resenas'
+import { listServicios } from '@/lib/queries/servicios'
+import { listHerramientas } from '@/lib/queries/herramientas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
 import { useFetch } from '@/hooks/useFetch'
-import { servicios } from '@/mocks/servicios' // mock vacío - TODO: query a profiles cuando integremos
-import { herramientas } from '@/mocks/herramientas'
-import { usersById } from '@/mocks/users'
+import type { User } from '@/types'
 
 export function PanelHome() {
   const user = useAuth((s) => s.user())!
@@ -27,12 +28,44 @@ export function PanelHome() {
   const { data: resenasData } = useFetch(() => listResenasParaUsuario(user.id), [user.id])
   const contrataciones = contratacionesData ?? []
   const resenasPara = resenasData ?? []
-  const conversaciones = useChat(
-    useShallow((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id))),
-  )
-  const notif = useNotificaciones(
-    useShallow((s) => s.items.filter((n) => n.usuarioId === user.id).slice(0, 5)),
-  )
+  const { data: convsData } = useFetch(() => listConversaciones(user.id), [user.id])
+  const { data: notifData } = useFetch(() => listNotificaciones(user.id), [user.id])
+  const conversaciones = convsData ?? []
+  const notif = (notifData ?? []).slice(0, 5)
+
+  const [profiles, setProfiles] = useState<Record<string, User>>({})
+  const [serviciosTitulos, setServiciosTitulos] = useState<Record<string, string>>({})
+  const [herramientasTitulos, setHerramientasTitulos] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const ultimas = contrataciones.slice(0, 5)
+    if (ultimas.length === 0) return
+    const otherIds = Array.from(
+      new Set(ultimas.map((c) => (c.clienteId === user.id ? c.ofertanteId : c.clienteId))),
+    )
+    getProfilesByIds(otherIds).then(setProfiles).catch(() => {})
+
+    const tieneServicios = ultimas.some((c) => c.tipo === 'servicio')
+    const tieneHerramientas = ultimas.some((c) => c.tipo === 'arriendo')
+    if (tieneServicios) {
+      listServicios()
+        .then((all) => {
+          const map: Record<string, string> = {}
+          for (const s of all) map[s.id] = s.oficio
+          setServiciosTitulos(map)
+        })
+        .catch(() => {})
+    }
+    if (tieneHerramientas) {
+      listHerramientas()
+        .then((all) => {
+          const map: Record<string, string> = {}
+          for (const h of all) map[h.id] = h.titulo
+          setHerramientasTitulos(map)
+        })
+        .catch(() => {})
+    }
+  }, [contrataciones, user.id])
 
   const isTrabajador = user.roles.includes('trabajador')
   const isArrendador = user.roles.includes('arrendador')
@@ -85,11 +118,11 @@ export function PanelHome() {
         ) : (
           <ul className="space-y-3">
             {contrataciones.slice(0, 5).map((c) => {
-              const otro = usersById[c.clienteId === user.id ? c.ofertanteId : c.clienteId]
+              const otro = profiles[c.clienteId === user.id ? c.ofertanteId : c.clienteId]
               const item =
                 c.tipo === 'servicio'
-                  ? servicios.find((s) => s.id === c.itemId)?.oficio
-                  : herramientas.find((h) => h.id === c.itemId)?.titulo
+                  ? serviciosTitulos[c.itemId]
+                  : herramientasTitulos[c.itemId]
               return (
                 <li key={c.id}>
                   <Link

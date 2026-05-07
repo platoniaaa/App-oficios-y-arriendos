@@ -1,15 +1,18 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Sparkles, MessageSquare, Star, Wrench, Hammer, UserPlus } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
-import { servicios } from '@/mocks/servicios'
-import { herramientas } from '@/mocks/herramientas'
 import { oficios, categoriasHerramientas } from '@/mocks/categorias'
 import { formatCLP } from '@/lib/format'
 import { PriceTag } from '@/components/ui/PriceTag'
+import { useFetch } from '@/hooks/useFetch'
+import { listServicios } from '@/lib/queries/servicios'
+import { listHerramientas } from '@/lib/queries/herramientas'
 
 export function Home() {
-  const hayServicios = servicios.length > 0
-  const hayHerramientas = herramientas.length > 0
+  const { data: servicios } = useFetch(() => listServicios(), [])
+  const { data: herramientas } = useFetch(() => listHerramientas(), [])
+  const hayServicios = (servicios?.length ?? 0) > 0
+  const hayHerramientas = (herramientas?.length ?? 0) > 0
 
   return (
     <div>

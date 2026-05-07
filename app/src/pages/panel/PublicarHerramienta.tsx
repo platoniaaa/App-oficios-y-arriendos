@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { categoriasHerramientas } from '@/mocks/categorias'
 import { todasLasComunas } from '@/mocks/regiones'
-import { ArrowLeft, ArrowRight, Plus, Upload, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { crearHerramienta } from '@/lib/queries/herramientas'
+import { UploadFotos } from '@/components/feature/UploadFotos'
 import type { RetiroModalidad, EstadoHerramienta } from '@/types'
 
 const steps = ['Categoría', 'Info', 'Fotos', 'Tarifas', 'Ubicación', 'Confirmar']
@@ -132,28 +133,10 @@ export function PublicarHerramienta() {
         {step === 2 && (
           <div className="space-y-4">
             <h2 className="font-display text-2xl font-semibold">Fotos (1–8)</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {fotos.map((src, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-xl border border-navy/10">
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                  <button type="button" className="absolute right-2 top-2 rounded-full bg-cream p-1" onClick={() => setFotos(fotos.filter((_, k) => k !== i))}>
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {fotos.length < 8 && (
-                <button
-                  type="button"
-                  onClick={() => setFotos([...fotos, `https://picsum.photos/seed/toolnew-${Date.now()}-${fotos.length}/700/700`])}
-                  className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-navy/25 hover:border-navy"
-                >
-                  <div className="text-center">
-                    <Upload className="mx-auto h-6 w-6" />
-                    <p className="mt-1 text-xs font-semibold">Agregar foto</p>
-                  </div>
-                </button>
-              )}
-            </div>
+            <p className="text-sm text-ink-500">
+              Sube hasta 8 fotos del equipo. JPG/PNG hasta 5 MB cada una.
+            </p>
+            <UploadFotos bucket="tools" fotos={fotos} onChange={setFotos} max={8} />
           </div>
         )}
 

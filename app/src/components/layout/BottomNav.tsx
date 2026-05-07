@@ -2,8 +2,8 @@ import { NavLink } from 'react-router-dom'
 import { Home, Search, Sparkles, MessageCircle, LayoutDashboard } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/stores/useAuth'
-import { useChat } from '@/stores/useChat'
-import { useShallow } from 'zustand/react/shallow'
+import { listConversaciones, subscribeToConversaciones } from '@/lib/queries/chat'
+import { useEffect, useState } from 'react'
 
 const items = [
   { to: '/', label: 'Inicio', icon: Home, exact: true },
@@ -15,11 +15,20 @@ const items = [
 
 export function BottomNav() {
   const user = useAuth((s) => s.user())
-  const unread = useChat(
-    useShallow((s) =>
-      user ? s.conversaciones.filter((c) => c.participantes.includes(user.id)).reduce((a, c) => a + (c.noLeidos ?? 0), 0) : 0,
-    ),
-  )
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    if (!user) return setUnread(0)
+    let unsub: (() => void) | undefined
+    async function load() {
+      if (!user) return
+      const convs = await listConversaciones(user.id)
+      setUnread(convs.reduce((a, c) => a + (c.noLeidos ?? 0), 0))
+    }
+    load()
+    if (user) unsub = subscribeToConversaciones(user.id, () => load())
+    return () => unsub?.()
+  }, [user])
 
   return (
     <nav

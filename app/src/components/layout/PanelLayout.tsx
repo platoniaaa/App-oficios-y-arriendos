@@ -3,7 +3,7 @@ import { useAuth } from '@/stores/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { LayoutDashboard, Briefcase, FileText, MessageCircle, Bell, Star, UserCog } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { useNotificaciones } from '@/stores/useNotificaciones'
+import { useNotifCount } from '@/hooks/useNotifCount'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
 
 const links = [
@@ -18,7 +18,7 @@ const links = [
 
 export function PanelLayout() {
   const user = useAuth((s) => s.user())
-  const noLeidas = useNotificaciones((s) => (user ? s.noLeidas(user.id) : 0))
+  const noLeidas = useNotifCount(user?.id)
   if (!user) return <Navigate to="/login" replace />
 
   return (

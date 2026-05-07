@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
 import { useFetch } from '@/hooks/useFetch'
-import { usersById } from '@/mocks/users' // TODO: query a profiles cuando sea necesario
-import { servicios } from '@/mocks/servicios'
-import { herramientas } from '@/mocks/herramientas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
+import { listServicios } from '@/lib/queries/servicios'
+import { listHerramientas } from '@/lib/queries/herramientas'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Avatar } from '@/components/ui/Avatar'
 import { PriceTag } from '@/components/ui/PriceTag'
 import { EstadoLabel } from '@/components/feature/EstadoContratacionLabel'
-import type { EstadoContratacion } from '@/types'
+import type { EstadoContratacion, User } from '@/types'
 import { cn } from '@/lib/cn'
 import { formatRelative } from '@/lib/format'
 
@@ -34,6 +34,38 @@ export function Contrataciones() {
   )
   const items = itemsData ?? []
   const [tab, setTab] = useState<(typeof tabs)[number]['id']>('todas')
+  const [profiles, setProfiles] = useState<Record<string, User>>({})
+  const [serviciosTitulos, setServiciosTitulos] = useState<Record<string, string>>({})
+  const [herramientasTitulos, setHerramientasTitulos] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (items.length === 0) return
+    const otherIds = Array.from(
+      new Set(items.map((c) => (c.clienteId === user.id ? c.ofertanteId : c.clienteId))),
+    )
+    getProfilesByIds(otherIds).then(setProfiles).catch(() => {})
+
+    const tieneServicios = items.some((c) => c.tipo === 'servicio')
+    const tieneHerramientas = items.some((c) => c.tipo === 'arriendo')
+    if (tieneServicios) {
+      listServicios()
+        .then((all) => {
+          const map: Record<string, string> = {}
+          for (const s of all) map[s.id] = s.oficio
+          setServiciosTitulos(map)
+        })
+        .catch(() => {})
+    }
+    if (tieneHerramientas) {
+      listHerramientas()
+        .then((all) => {
+          const map: Record<string, string> = {}
+          for (const h of all) map[h.id] = h.titulo
+          setHerramientasTitulos(map)
+        })
+        .catch(() => {})
+    }
+  }, [items, user.id])
 
   const lista = items.filter((c) => tabs.find((t) => t.id === tab)!.filter(c.estado))
 
@@ -65,11 +97,11 @@ export function Contrataciones() {
       ) : (
         <ul className="space-y-3">
           {lista.map((c) => {
-            const otro = usersById[c.clienteId === user.id ? c.ofertanteId : c.clienteId]
+            const otro = profiles[c.clienteId === user.id ? c.ofertanteId : c.clienteId]
             const item =
               c.tipo === 'servicio'
-                ? servicios.find((s) => s.id === c.itemId)?.oficio
-                : herramientas.find((h) => h.id === c.itemId)?.titulo
+                ? serviciosTitulos[c.itemId]
+                : herramientasTitulos[c.itemId]
             return (
               <li key={c.id}>
                 <Link to={`/panel/contratacion/${c.id}`} className="card flex items-center gap-4 p-4 hover:border-navy/30">

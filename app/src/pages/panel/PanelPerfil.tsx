@@ -1,28 +1,73 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '@/stores/useAuth'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { VerificationBadge } from '@/components/ui/Badge'
 import { regiones } from '@/mocks/regiones'
-import { usersById } from '@/mocks/users'
-import { Upload, RefreshCcw, ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { Upload, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
+import { updateProfile } from '@/lib/profile'
+import { uploadFile } from '@/lib/storage'
 
 export function PanelPerfil() {
   const user = useAuth((s) => s.user())!
-  const setUser = useAuth((s) => s.setUser)
+  const refresh = useAuth((s) => s.refresh)
   const upsert = useAuth((s) => s.upsertVerificaciones)
   const [form, setForm] = useState({ ...user })
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+  const fileRef = useRef<HTMLInputElement | null>(null)
 
   const regionesOpt = regiones.map((r) => ({ value: r.nombre, label: r.nombre }))
   const comunasOpt =
-    regiones.find((r) => r.nombre === form.region)?.comunas.map((c) => ({ value: c, label: c })) ?? []
+    regiones.find((r) => r.nombre === form.region)?.comunas.map((c) => ({ value: c, label: c })) ??
+    []
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault()
-    const u = { ...form }
-    usersById[u.id] = u
-    setUser(u)
+    setError(null)
+    setOk(false)
+    setSaving(true)
+    try {
+      await updateProfile(user.id, {
+        nombre: form.nombre,
+        apellido: form.apellido ?? null,
+        razon_social: form.razonSocial ?? null,
+        giro: form.giro ?? null,
+        telefono: form.telefono,
+        region: form.region,
+        comuna: form.comuna,
+        bio: form.bio ?? null,
+        foto_perfil: form.fotoPerfil,
+      })
+      await refresh()
+      setOk(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function onFotoChange(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La foto debe pesar menos de 5 MB.')
+      return
+    }
+    setUploading(true)
+    setError(null)
+    try {
+      const url = await uploadFile('avatars', user.id, file)
+      setForm((f) => ({ ...f, fotoPerfil: url }))
+      await updateProfile(user.id, { foto_perfil: url })
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo subir la foto.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -38,14 +83,30 @@ export function PanelPerfil() {
             <Avatar src={form.fotoPerfil} name={form.nombre} size="xl" />
             <div>
               <p className="font-display text-lg font-semibold">Foto de perfil</p>
-              <p className="text-sm text-ink-400">Una foto clara genera más confianza.</p>
+              <p className="text-sm text-ink-400">JPG/PNG hasta 5 MB. Una foto clara genera confianza.</p>
               <button
                 type="button"
                 className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ember hover:underline"
-                onClick={() => setForm({ ...form, fotoPerfil: `https://i.pravatar.cc/240?img=${Math.ceil(Math.random() * 70)}` })}
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
               >
-                <RefreshCcw className="h-3 w-3" /> Cambiar foto
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> Subiendo…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3 w-3" /> Cambiar foto
+                  </>
+                )}
               </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && onFotoChange(e.target.files[0])}
+              />
             </div>
           </div>
 
@@ -62,26 +123,69 @@ export function PanelPerfil() {
               }
             />
             {form.tipo === 'persona' && (
-              <Input label="Apellido" value={form.apellido ?? ''} onChange={(e) => setForm({ ...form, apellido: e.target.value })} />
+              <Input
+                label="Apellido"
+                value={form.apellido ?? ''}
+                onChange={(e) => setForm({ ...form, apellido: e.target.value })}
+              />
             )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Correo" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <Input label="Teléfono" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+            <Input
+              label="Correo"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              disabled
+              hint="El email es el de tu cuenta. No se puede cambiar aquí."
+            />
+            <Input
+              label="Teléfono"
+              value={form.telefono}
+              onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Select
               label="Región"
               value={form.region}
-              onChange={(e) => setForm({ ...form, region: e.target.value, comuna: regiones.find((r) => r.nombre === e.target.value)?.comunas[0] ?? form.comuna })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  region: e.target.value,
+                  comuna:
+                    regiones.find((r) => r.nombre === e.target.value)?.comunas[0] ?? form.comuna,
+                })
+              }
               options={regionesOpt}
             />
-            <Select label="Comuna" value={form.comuna} onChange={(e) => setForm({ ...form, comuna: e.target.value })} options={comunasOpt} />
+            <Select
+              label="Comuna"
+              value={form.comuna}
+              onChange={(e) => setForm({ ...form, comuna: e.target.value })}
+              options={comunasOpt}
+            />
           </div>
-          <Textarea label="Bio" value={form.bio ?? ''} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Cuéntale a tus clientes quién eres y qué haces…" />
+          <Textarea
+            label="Bio"
+            value={form.bio ?? ''}
+            onChange={(e) => setForm({ ...form, bio: e.target.value })}
+            placeholder="Cuéntale a tus clientes quién eres y qué haces…"
+          />
+
+          {error && (
+            <div className="rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+              {error}
+            </div>
+          )}
+          {ok && (
+            <div className="rounded-lg border border-moss/30 bg-moss/5 px-3 py-2 text-sm text-moss">
+              Cambios guardados.
+            </div>
+          )}
+
           <div className="flex justify-end">
-            <Button variant="primary" size="md" type="submit">
+            <Button variant="primary" size="md" type="submit" loading={saving}>
               <CheckCircle2 className="h-4 w-4" /> Guardar cambios
             </Button>
           </div>
@@ -93,8 +197,9 @@ export function PanelPerfil() {
             <h2 className="font-display text-2xl font-semibold">Verificaciones</h2>
           </div>
           <p className="text-sm text-ink-500">
-            Los documentos verificados te dan más confianza ante clientes. En el MVP puedes aprobar
-            manualmente tus verificaciones para demo.
+            La validación real de documentos la hace nuestro equipo cuando subas tu cédula y
+            certificaciones. Mientras tanto, puedes marcarlas como validadas en modo demo para
+            probar el flujo.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -125,21 +230,29 @@ export function PanelPerfil() {
   )
 }
 
-function VerifCard({ label, estado, onValidar }: { label: string; estado: import('@/types').EstadoVerificacion; onValidar: () => void }) {
+function VerifCard({
+  label,
+  estado,
+  onValidar,
+}: {
+  label: string
+  estado: import('@/types').EstadoVerificacion
+  onValidar: () => void
+}) {
   return (
     <div className="rounded-2xl border-2 border-dashed border-navy/20 p-4 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="font-display text-lg font-semibold">{label}</p>
         <VerificationBadge estado={estado} label={label} />
       </div>
-      {estado !== 'validada' && (
+      {estado !== 'validada' && estado !== 'no_aplica' && (
         <button
           type="button"
           className="inline-flex items-center gap-2 self-start text-sm font-semibold text-ember hover:underline"
           onClick={onValidar}
         >
           <Upload className="h-3 w-3" />
-          {estado === 'pendiente' ? 'Subir y validar (demo)' : 'Reintentar'}
+          {estado === 'pendiente' ? 'Marcar como validada (demo)' : 'Reintentar'}
         </button>
       )}
     </div>

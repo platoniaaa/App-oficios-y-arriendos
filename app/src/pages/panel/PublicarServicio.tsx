@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { oficios } from '@/mocks/categorias'
 import { todasLasComunas } from '@/mocks/regiones'
-import { ArrowLeft, ArrowRight, Upload, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { crearServicio } from '@/lib/queries/servicios'
+import { UploadFotos } from '@/components/feature/UploadFotos'
 
 const steps = ['Oficio', 'Descripción', 'Tarifa', 'Zonas', 'Galería', 'Confirmar']
 
@@ -188,33 +189,10 @@ export function PublicarServicio() {
         {step === 4 && (
           <div className="space-y-4">
             <h2 className="font-display text-2xl font-semibold">Galería de trabajos</h2>
-            <p className="text-sm text-ink-500">Sube fotos de tus mejores trabajos. En el prototipo añadimos imágenes de muestra.</p>
-            <div className="grid grid-cols-3 gap-3">
-              {galeria.map((src, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-xl border border-navy/10">
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    className="absolute right-2 top-2 rounded-full bg-cream p-1"
-                    onClick={() => setGaleria(galeria.filter((_, k) => k !== i))}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {galeria.length < 6 && (
-                <button
-                  type="button"
-                  onClick={() => setGaleria([...galeria, `https://picsum.photos/seed/up-${Date.now()}/600/600`])}
-                  className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-navy/25 text-navy hover:border-navy"
-                >
-                  <div className="text-center">
-                    <Upload className="mx-auto h-6 w-6" />
-                    <p className="mt-1 text-xs font-semibold">Agregar foto</p>
-                  </div>
-                </button>
-              )}
-            </div>
+            <p className="text-sm text-ink-500">
+              Sube fotos de tus mejores trabajos. JPG/PNG hasta 5 MB cada una. Hasta 6 fotos.
+            </p>
+            <UploadFotos bucket="gallery" fotos={galeria} onChange={setGaleria} max={6} />
           </div>
         )}
 

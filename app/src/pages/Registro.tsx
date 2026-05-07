@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
-import { Input, Select, Textarea } from '@/components/ui/Input'
+import { Input, Select } from '@/components/ui/Input'
 import { regiones } from '@/mocks/regiones'
-import { Building2, User2, ArrowRight, ArrowLeft, CheckCircle2, Upload } from 'lucide-react'
+import { Building2, User2, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatRut, validateRut } from '@/lib/rut'
 import { useAuth } from '@/stores/useAuth'
 import type { Rol, TipoCuenta } from '@/types'
 import type { ProfileRow } from '@/lib/profile'
 
-const steps = ['Tipo', 'Intención', 'Datos', 'Verificación', 'Perfil', 'Confirmación']
+const steps = ['Tipo', 'Intención', 'Datos', 'Confirmar']
 
 interface Form {
   tipo: TipoCuenta
@@ -26,9 +26,6 @@ interface Form {
   region: string
   comuna: string
   password: string
-  verificacion: { cedulaArchivo?: string; certArchivo?: string; autoriza: boolean }
-  bio: string
-  fotoPerfil: string
   termsOk: boolean
 }
 
@@ -50,9 +47,6 @@ const emptyForm: Form = {
   region: 'Metropolitana',
   comuna: 'Santiago',
   password: '',
-  verificacion: { autoriza: false },
-  bio: '',
-  fotoPerfil: '',
   termsOk: false,
 }
 
@@ -99,12 +93,9 @@ export function Registro() {
       telefono: form.telefono,
       region: form.region,
       comuna: form.comuna,
-      bio: form.bio || null,
-      foto_perfil:
-        form.fotoPerfil ||
-        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-          form.nombre || form.razonSocial,
-        )}`,
+      foto_perfil: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+        form.nombre || form.razonSocial || form.email,
+      )}`,
       roles,
       verif_rut: 'pendiente',
       verif_cedula: 'pendiente',
@@ -299,57 +290,6 @@ export function Registro() {
         )}
 
         {step === 3 && (
-          <Step
-            title="Verificación"
-            subtitle="Después de crear tu cuenta podrás subir tu cédula y certificaciones desde tu panel. Por ahora solo confirmamos los permisos."
-          >
-            <div className="rounded-2xl border border-ink-200 bg-cream-soft p-4 text-sm text-ink-500">
-              <p className="font-semibold text-navy">¿Qué validamos?</p>
-              <ul className="mt-2 space-y-1">
-                <li>• <strong>RUT</strong> y <strong>cédula de identidad</strong> — para todas las cuentas.</li>
-                {form.intenciones.ofrecerOficio && (
-                  <>
-                    <li>• <strong>Antecedentes</strong> — porque vas a ofrecer servicios.</li>
-                    <li>• <strong>Certificaciones de oficio</strong> — opcional, sube las que tengas.</li>
-                  </>
-                )}
-              </ul>
-              <p className="mt-3 text-xs">
-                Estos documentos los subirás desde <em>Mi cuenta</em> en tu panel después de crear la
-                cuenta. Un equipo los revisa y aprueba.
-              </p>
-            </div>
-
-            <label className="mt-4 flex items-start gap-2 rounded-xl border-2 border-navy/10 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 accent-navy"
-                checked={form.verificacion.autoriza}
-                onChange={(e) =>
-                  setForm({ ...form, verificacion: { ...form.verificacion, autoriza: e.target.checked } })
-                }
-              />
-              Autorizo a Cuadrilla a consultar mis antecedentes en fuentes oficiales cuando suba mis
-              documentos.
-            </label>
-          </Step>
-        )}
-
-        {step === 4 && (
-          <Step
-            title="Bio (opcional)"
-            subtitle="Tu foto la subirás desde tu panel cuando entres. Por ahora cuéntanos un poco sobre ti."
-          >
-            <Textarea
-              label="Cuéntanos brevemente sobre ti"
-              value={form.bio}
-              onChange={(e) => setForm({ ...form, bio: e.target.value })}
-              placeholder="Ej: soy eléctrico con 8 años de experiencia en instalaciones residenciales…"
-            />
-          </Step>
-        )}
-
-        {step === 5 && (
           <Step title="Últimos detalles">
             <ul className="space-y-2 rounded-2xl border border-navy/10 bg-cream-soft p-4 text-sm">
               <li><strong>Tipo:</strong> {form.tipo}</li>
@@ -423,19 +363,3 @@ function Step({ title, subtitle, children }: { title: string; subtitle?: string;
   )
 }
 
-function Uploader({ label, onChange, archivo }: { label: string; onChange: () => void; archivo?: string }) {
-  return (
-    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-navy/25 bg-cream-soft p-6 text-center transition hover:border-navy">
-      <Upload className="h-8 w-8 text-navy/60 mb-2" />
-      <p className="font-semibold">{archivo ?? label}</p>
-      <p className="text-xs text-ink-400">Formato jpg/png/pdf (simulado)</p>
-      <input
-        type="file"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.length) onChange()
-        }}
-      />
-    </label>
-  )
-}

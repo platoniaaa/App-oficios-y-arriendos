@@ -1,23 +1,40 @@
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useResenas } from '@/stores/useResenas'
-import { usersById } from '@/mocks/users'
 import { Avatar } from '@/components/ui/Avatar'
 import { RatingDistribution } from '@/components/feature/RatingDistribution'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
 import { Star, ThumbsUp, MessageSquare } from 'lucide-react'
 import { formatRelative } from '@/lib/format'
+import { listResenasParaUsuario, responderResena } from '@/lib/queries/resenas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
+import { useFetch } from '@/hooks/useFetch'
 
 export function PrestadorResenas() {
   const user = useAuth((s) => s.user())!
-  const resenas = useResenas(useShallow((s) => s.paraUsuario(user.id)))
   const [filtro, setFiltro] = useState<number | 'todas'>('todas')
   const [respondiendo, setRespondiendo] = useState<string | null>(null)
   const [texto, setTexto] = useState('')
 
-  const filtradas = filtro === 'todas' ? resenas : resenas.filter((r) => Math.round(r.estrellas) === filtro)
+  const { data, loading, refetch } = useFetch(async () => {
+    const resenas = await listResenasParaUsuario(user.id)
+    const autoresById = await getProfilesByIds(resenas.map((r) => r.autorId))
+    return { resenas, autoresById }
+  }, [user.id])
+
+  if (loading) return <div className="text-center text-ink-400 py-12">Cargando…</div>
+  const resenas = data?.resenas ?? []
+  const autoresById = data?.autoresById ?? {}
+  const filtradas =
+    filtro === 'todas' ? resenas : resenas.filter((r) => Math.round(r.estrellas) === filtro)
+
+  async function enviarRespuesta(id: string) {
+    if (texto.length < 5) return
+    await responderResena(id, texto)
+    setRespondiendo(null)
+    setTexto('')
+    refetch()
+  }
 
   return (
     <div className="space-y-8">
@@ -48,7 +65,7 @@ export function PrestadorResenas() {
       ) : (
         <ul className="space-y-4">
           {filtradas.map((r) => {
-            const autor = usersById[r.autorId]
+            const autor = autoresById[r.autorId]
             const isResponding = respondiendo === r.id
             return (
               <li key={r.id} className="card p-5">
@@ -87,7 +104,12 @@ export function PrestadorResenas() {
                           <Button variant="ghost" size="sm" onClick={() => setRespondiendo(null)}>
                             Cancelar
                           </Button>
-                          <Button variant="ember" size="sm" disabled={texto.length < 5}>
+                          <Button
+                            variant="ember"
+                            size="sm"
+                            disabled={texto.length < 5}
+                            onClick={() => enviarRespuesta(r.id)}
+                          >
                             Enviar respuesta
                           </Button>
                         </div>

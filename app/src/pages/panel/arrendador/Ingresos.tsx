@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import {
+  listContratacionesDeUsuario,
+  actualizarEstadoContratacion,
+} from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
 import { movimientosDeUsuario, resumenFinanciero, ingresoPorMes } from '@/mocks/finanzas'
 import { herramientas } from '@/mocks/herramientas'
 import { usersById } from '@/mocks/users'
@@ -21,18 +24,21 @@ export function ArrendadorIngresos() {
   const fin = resumenFinanciero(user.id)
   const data = ingresoPorMes(user.id)
   const movs = movimientosDeUsuario(user.id)
-  const activos = useContrataciones(
-    useShallow((s) =>
-      s.items.filter(
-        (c) =>
-          c.ofertanteId === user.id &&
-          c.deposito &&
-          c.deposito > 0 &&
-          ['pago_en_escrow', 'en_ejecucion', 'finalizada_pendiente_aprobacion'].includes(c.estado),
-      ),
-    ),
+  const { data: contrsData, refetch } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
-  const updateEstado = useContrataciones((s) => s.updateEstado)
+  const activos = (contrsData ?? []).filter(
+    (c) =>
+      c.ofertanteId === user.id &&
+      c.deposito &&
+      c.deposito > 0 &&
+      ['pago_en_escrow', 'en_ejecucion', 'finalizada_pendiente_aprobacion'].includes(c.estado),
+  )
+  const updateEstado = async (id: string, nuevo: import('@/types').EstadoContratacion) => {
+    await actualizarEstadoContratacion(id, nuevo)
+    refetch()
+  }
   const [retiroOpen, setRetiroOpen] = useState(false)
   const [monto, setMonto] = useState(fin.disponible)
   const [claimId, setClaimId] = useState<string | null>(null)

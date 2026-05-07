@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
 import { useChat } from '@/stores/useChat'
 import { useNotificaciones } from '@/stores/useNotificaciones'
-import { useResenas } from '@/stores/useResenas'
 import { Avatar } from '@/components/ui/Avatar'
 import { VerificationBadge } from '@/components/ui/Badge'
 import { StarRating } from '@/components/ui/StarRating'
@@ -13,22 +11,28 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { EstadoLabel } from '@/components/feature/EstadoContratacionLabel'
 import { formatRelative } from '@/lib/format'
 import { ArrowRight, Plus, Sparkles } from 'lucide-react'
-import { servicios } from '@/mocks/servicios'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { listResenasParaUsuario } from '@/lib/queries/resenas'
+import { useFetch } from '@/hooks/useFetch'
+import { servicios } from '@/mocks/servicios' // mock vacío - TODO: query a profiles cuando integremos
 import { herramientas } from '@/mocks/herramientas'
 import { usersById } from '@/mocks/users'
 
 export function PanelHome() {
   const user = useAuth((s) => s.user())!
-  const contrataciones = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id)),
+  const { data: contratacionesData } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
+  const { data: resenasData } = useFetch(() => listResenasParaUsuario(user.id), [user.id])
+  const contrataciones = contratacionesData ?? []
+  const resenasPara = resenasData ?? []
   const conversaciones = useChat(
     useShallow((s) => s.conversaciones.filter((c) => c.participantes.includes(user.id))),
   )
   const notif = useNotificaciones(
     useShallow((s) => s.items.filter((n) => n.usuarioId === user.id).slice(0, 5)),
   )
-  const resenasPara = useResenas(useShallow((s) => s.paraUsuario(user.id)))
 
   const isTrabajador = user.roles.includes('trabajador')
   const isArrendador = user.roles.includes('arrendador')

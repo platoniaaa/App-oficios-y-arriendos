@@ -1,19 +1,32 @@
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useResenas } from '@/stores/useResenas'
-import { usersById } from '@/mocks/users'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { cn } from '@/lib/cn'
 import { formatRelative } from '@/lib/format'
+import { listResenasParaUsuario, listResenasDePorAutor } from '@/lib/queries/resenas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
+import { useFetch } from '@/hooks/useFetch'
 
 export function Resenas() {
   const user = useAuth((s) => s.user())!
-  const recibidas = useResenas(useShallow((s) => s.paraUsuario(user.id)))
-  const dadas = useResenas(useShallow((s) => s.dePorAutor(user.id)))
   const [tab, setTab] = useState<'recibidas' | 'dadas'>('recibidas')
+
+  const { data, loading } = useFetch(async () => {
+    const [recibidas, dadas] = await Promise.all([
+      listResenasParaUsuario(user.id),
+      listResenasDePorAutor(user.id),
+    ])
+    const ids = [...recibidas.map((r) => r.autorId), ...dadas.map((r) => r.destinoId)]
+    const perfilesById = await getProfilesByIds(ids)
+    return { recibidas, dadas, perfilesById }
+  }, [user.id])
+
+  if (loading) return <div className="text-center text-ink-400 py-12">Cargando…</div>
+  const recibidas = data?.recibidas ?? []
+  const dadas = data?.dadas ?? []
+  const perfilesById = data?.perfilesById ?? {}
   const lista = tab === 'recibidas' ? recibidas : dadas
 
   return (
@@ -24,15 +37,20 @@ export function Resenas() {
       </header>
 
       <nav className="flex gap-1 border-b border-navy/10">
-        {([
-          ['recibidas', `Recibidas (${recibidas.length})`],
-          ['dadas', `Enviadas (${dadas.length})`],
-        ] as const).map(([id, label]) => (
+        {(
+          [
+            ['recibidas', `Recibidas (${recibidas.length})`],
+            ['dadas', `Enviadas (${dadas.length})`],
+          ] as const
+        ).map(([id, label]) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={cn('relative px-4 py-3 text-sm font-semibold transition', tab === id ? 'text-navy' : 'text-ink-400 hover:text-navy')}
+            className={cn(
+              'relative px-4 py-3 text-sm font-semibold transition',
+              tab === id ? 'text-navy' : 'text-ink-400 hover:text-navy',
+            )}
           >
             {label}
             {tab === id && <span className="absolute inset-x-2 -bottom-px h-0.5 bg-ember" />}
@@ -47,10 +65,10 @@ export function Resenas() {
         />
       ) : (
         <ul className="space-y-4">
-          {lista
+          {[...lista]
             .sort((a, b) => b.fecha.localeCompare(a.fecha))
             .map((r) => {
-              const otro = usersById[tab === 'recibidas' ? r.autorId : r.destinoId]
+              const otro = perfilesById[tab === 'recibidas' ? r.autorId : r.destinoId]
               return (
                 <li key={r.id} className="card p-5">
                   <div className="flex items-start gap-3">

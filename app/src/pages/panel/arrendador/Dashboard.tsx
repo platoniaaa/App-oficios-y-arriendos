@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { listHerramientasDeUsuario } from '@/lib/queries/herramientas'
+import { useFetch } from '@/hooks/useFetch'
 import { resumenFinanciero, ingresoPorMes } from '@/mocks/finanzas'
-import { herramientas } from '@/mocks/herramientas'
 import { usersById } from '@/mocks/users'
 import { KpiCard } from '@/components/feature/KpiCard'
 import { RevenueChart } from '@/components/feature/RevenueChart'
@@ -26,10 +26,15 @@ export function ArrendadorDashboard() {
   const user = useAuth((s) => s.user())!
   const fin = resumenFinanciero(user.id)
   const chartData = ingresoPorMes(user.id)
-  const contrs = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo')),
+  const { data: contrsData } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
-  const inventario = herramientas.filter((h) => h.propietarioId === user.id)
+  const contrs = (contrsData ?? []).filter(
+    (c) => c.ofertanteId === user.id && c.tipo === 'arriendo',
+  )
+  const { data: invData } = useFetch(() => listHerramientasDeUsuario(user.id), [user.id])
+  const inventario = invData ?? []
 
   const nuevas = contrs.filter((c) => c.estado === 'solicitada').length
   const activos = contrs.filter((c) => ['pago_en_escrow', 'en_ejecucion', 'finalizada_pendiente_aprobacion'].includes(c.estado)).length
@@ -115,7 +120,7 @@ export function ArrendadorDashboard() {
             <ul className="space-y-3">
               {proximasDevoluciones.map((c) => {
                 const cliente = usersById[c.clienteId]
-                const tool = herramientas.find((h) => h.id === c.itemId)
+                const tool = inventario.find((h) => h.id === c.itemId)
                 return (
                   <li key={c.id}>
                     <Link to={`/panel/contratacion/${c.id}`} className="card flex items-center gap-3 p-3 hover:border-navy/30">

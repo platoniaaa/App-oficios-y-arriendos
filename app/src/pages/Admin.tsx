@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { users } from '@/mocks/users'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { supabase } from '@/lib/supabase'
+import { useFetch } from '@/hooks/useFetch'
+import type { Contratacion } from '@/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge, VerificationBadge } from '@/components/ui/Badge'
 import { cn } from '@/lib/cn'
@@ -12,7 +13,14 @@ type Tab = 'verificaciones' | 'disputas' | 'reportes'
 
 export function Admin() {
   const [tab, setTab] = useState<Tab>('verificaciones')
-  const disputas = useContrataciones(useShallow((s) => s.items.filter((c) => c.estado === 'en_disputa')))
+  const { data: disputasData } = useFetch(async () => {
+    const { data } = await supabase
+      .from('contrataciones')
+      .select('*')
+      .eq('estado', 'en_disputa')
+    return (data ?? []) as unknown as Contratacion[]
+  }, [])
+  const disputas = disputasData ?? []
 
   return (
     <div className="container-page py-10">

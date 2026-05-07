@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { useChat } from '@/stores/useChat'
-import { useContrataciones } from '@/stores/useContrataciones'
 import { usersById } from '@/mocks/users'
 import { Avatar } from '@/components/ui/Avatar'
 import { Send, Paperclip, ArrowLeft, FileText } from 'lucide-react'
@@ -13,7 +12,7 @@ export function ChatConversacion() {
   const { id } = useParams()
   const user = useAuth((s) => s.user())!
   const { conversaciones, mensajes, enviar, simularRespuesta, marcarLeidos } = useChat()
-  const contratacion = useContrataciones((s) => s.items.find((c) => c.id === (conversaciones.find((cv) => cv.id === id)?.contratacionId ?? '')))
+  const contratacion = null as { id: string } | null // TODO: fetch contratación cuando migremos chat a Supabase
   const [texto, setTexto] = useState('')
   const listRef = useRef<HTMLDivElement | null>(null)
 

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { usersById } from '@/mocks/users' // TODO: reemplazar por query real cuando migremos reseñas
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating, InteractiveStars } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
@@ -10,9 +9,10 @@ import { CheckCircle2, MapPin, MessageCircle, Sparkles, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Input'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { crearContratacion } from '@/lib/queries/contrataciones'
 import { useChat } from '@/stores/useChat'
-import { useResenas } from '@/stores/useResenas'
+import { listResenasParaUsuario } from '@/lib/queries/resenas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
 import { formatRelative } from '@/lib/format'
 import { fees } from '@/config/brand'
 import { getServicio } from '@/lib/queries/servicios'
@@ -25,16 +25,18 @@ export function ServicioDetalle() {
   const [openContratar, setOpenContratar] = useState(false)
   const user = useAuth((s) => s.user())
   const nav = useNavigate()
-  const add = useContrataciones((s) => s.add)
   const startOrGet = useChat((s) => s.startOrGet)
-  const paraUsuario = useResenas((s) => s.paraUsuario)
 
   const { data, loading } = useFetch(async () => {
     if (!id) return null
     const servicio = await getServicio(id)
     if (!servicio) return null
-    const trab = await getProfile(servicio.trabajadorId)
-    return { servicio, trab }
+    const [trab, resenas] = await Promise.all([
+      getProfile(servicio.trabajadorId),
+      listResenasParaUsuario(servicio.trabajadorId),
+    ])
+    const autoresById = await getProfilesByIds(resenas.map((r) => r.autorId))
+    return { servicio, trab, resenas, autoresById }
   }, [id])
 
   if (loading) {
@@ -45,8 +47,7 @@ export function ServicioDetalle() {
     )
   }
   if (!data) return <Navigate to="/buscar?tipo=servicios" replace />
-  const { servicio, trab } = data
-  const resenas = trab ? paraUsuario(trab.id) : []
+  const { servicio, trab, resenas, autoresById } = data
 
   return (
     <div className="container-page py-8 md:py-12">
@@ -207,9 +208,9 @@ export function ServicioDetalle() {
                 {resenas.slice(0, 3).map((r) => (
                   <li key={r.id} className="card p-4">
                     <div className="flex items-center gap-3 mb-2">
-                      <Avatar src={usersById[r.autorId]?.fotoPerfil} name={usersById[r.autorId]?.nombre} size="sm" />
+                      <Avatar src={autoresById[r.autorId]?.fotoPerfil} name={autoresById[r.autorId]?.nombre} size="sm" />
                       <div>
-                        <p className="font-semibold">{usersById[r.autorId]?.nombre}</p>
+                        <p className="font-semibold">{autoresById[r.autorId]?.nombre}</p>
                         <p className="text-xs text-ink-400">{formatRelative(r.fecha)}</p>
                       </div>
                       <div className="ml-auto">
@@ -278,23 +279,27 @@ export function ServicioDetalle() {
       <ContratarModal
         open={openContratar}
         onClose={() => setOpenContratar(false)}
-        onSubmit={(descripcion) => {
+        onSubmit={async (descripcion) => {
           if (!user) return nav('/login')
           if (!trab) return
           const monto = servicio.tarifaReferencia.monto ?? 50000
-          const c = add({
-            tipo: 'servicio',
-            clienteId: user.id,
-            ofertanteId: trab.id,
-            itemId: servicio.id,
-            fechaSolicitud: new Date().toISOString(),
-            fechaInicio: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-            monto,
-            estado: 'solicitada',
-            descripcionTrabajo: descripcion,
-          })
-          setOpenContratar(false)
-          nav(`/panel/contratacion/${c.id}`)
+          try {
+            const c = await crearContratacion({
+              tipo: 'servicio',
+              cliente_id: user.id,
+              ofertante_id: trab.id,
+              servicio_id: servicio.id,
+              fecha_inicio: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+              monto,
+              estado: 'solicitada',
+              descripcion_trabajo: descripcion,
+            })
+            setOpenContratar(false)
+            nav(`/panel/contratacion/${c.id}`)
+          } catch (e) {
+            console.error(e)
+            alert('No se pudo crear la solicitud. Intenta de nuevo.')
+          }
         }}
       />
     </div>

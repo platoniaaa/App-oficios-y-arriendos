@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import {
+  listContratacionesDeUsuario,
+  actualizarEstadoContratacion,
+} from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
 import { usersById } from '@/mocks/users'
 import { servicios } from '@/mocks/servicios'
 import { Avatar } from '@/components/ui/Avatar'
@@ -26,10 +29,17 @@ const tabs: { id: string; label: string; filter: (e: EstadoContratacion) => bool
 
 export function PrestadorSolicitudes() {
   const user = useAuth((s) => s.user())!
-  const items = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio')),
+  const { data: itemsData, refetch } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
-  const updateEstado = useContrataciones((s) => s.updateEstado)
+  const items = (itemsData ?? []).filter(
+    (c) => c.ofertanteId === user.id && c.tipo === 'servicio',
+  )
+  const updateEstado = async (id: string, nuevo: import('@/types').EstadoContratacion) => {
+    await actualizarEstadoContratacion(id, nuevo)
+    refetch()
+  }
   const [tab, setTab] = useState('nuevas')
   const [cotizandoId, setCotizandoId] = useState<string | null>(null)
 

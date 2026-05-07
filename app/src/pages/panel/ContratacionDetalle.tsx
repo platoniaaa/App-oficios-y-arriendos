@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useContrataciones } from '@/stores/useContrataciones'
 import { useAuth } from '@/stores/useAuth'
-import { usersById } from '@/mocks/users'
-import { servicios } from '@/mocks/servicios'
-import { herramientas } from '@/mocks/herramientas'
 import { TimelineEscrow } from '@/components/ui/TimelineEscrow'
 import { EstadoLabel } from '@/components/feature/EstadoContratacionLabel'
 import { Button } from '@/components/ui/Button'
@@ -18,34 +14,81 @@ import { fees } from '@/config/brand'
 import type { EstadoContratacion } from '@/types'
 import { AlertTriangle, MessageCircle, FileText } from 'lucide-react'
 import { useChat } from '@/stores/useChat'
-import { useResenas } from '@/stores/useResenas'
 import { useNotificaciones } from '@/stores/useNotificaciones'
+import {
+  getContratacion,
+  actualizarEstadoContratacion,
+} from '@/lib/queries/contrataciones'
+import { crearResena } from '@/lib/queries/resenas'
+import { getProfile } from '@/lib/queries/perfiles'
+import { getServicio } from '@/lib/queries/servicios'
+import { getHerramienta } from '@/lib/queries/herramientas'
+import { useFetch } from '@/hooks/useFetch'
 
 export function ContratacionDetalle() {
   const { id } = useParams()
   const user = useAuth((s) => s.user())!
-  const c = useContrataciones((s) => s.items.find((x) => x.id === id))
-  const updateEstado = useContrataciones((s) => s.updateEstado)
   const startOrGet = useChat((s) => s.startOrGet)
   const nav = useNavigate()
-  const addResena = useResenas((s) => s.add)
   const notifPush = useNotificaciones((s) => s.push)
   const [resenaOpen, setResenaOpen] = useState(false)
 
-  if (!c) {
+  const { data, loading, refetch } = useFetch(async () => {
+    if (!id) return null
+    const c = await getContratacion(id)
+    if (!c) return null
+    const otroId = c.clienteId === user.id ? c.ofertanteId : c.clienteId
+    const [contraparte, item] = await Promise.all([
+      getProfile(otroId),
+      c.tipo === 'servicio' ? getServicio(c.itemId) : getHerramienta(c.itemId),
+    ])
+    return { c, contraparte, item }
+  }, [id, user.id])
+
+  if (loading) {
+    return <p className="text-sm text-ink-400 py-8 text-center">Cargando…</p>
+  }
+  if (!data || !data.c) {
     return <p className="text-sm text-ink-400">Contratación no encontrada.</p>
   }
 
+  const c = data.c
+  const contraparte = data.contraparte
+  const item = data.item
   const esCliente = c.clienteId === user.id
-  const contraparte = usersById[esCliente ? c.ofertanteId : c.clienteId]
   const itemTitle =
-    c.tipo === 'servicio'
-      ? servicios.find((s) => s.id === c.itemId)?.oficio
-      : herramientas.find((h) => h.id === c.itemId)?.titulo
+    item && c.tipo === 'servicio'
+      ? (item as { oficio: string }).oficio
+      : item
+        ? (item as { titulo: string }).titulo
+        : undefined
   const itemLink = c.tipo === 'servicio' ? `/servicio/${c.itemId}` : `/herramienta/${c.itemId}`
 
+  async function updateEstado(nuevo: EstadoContratacion) {
+    if (!c) return
+    await actualizarEstadoContratacion(c.id, nuevo)
+    refetch()
+  }
+  async function addResena(input: {
+    contratacionId: string
+    autorId: string
+    destinoId: string
+    estrellas: number
+    comentario: string
+    recomienda: boolean
+  }) {
+    await crearResena({
+      contratacion_id: input.contratacionId,
+      autor_id: input.autorId,
+      destino_id: input.destinoId,
+      estrellas: input.estrellas,
+      comentario: input.comentario,
+      recomienda: input.recomienda,
+    })
+  }
+
   function advanceTo(next: EstadoContratacion) {
-    updateEstado(c!.id, next)
+    void updateEstado(next)
   }
 
   const acciones: { label: string; next: EstadoContratacion; variant?: 'ember' | 'primary' | 'outline' | 'ghost' }[] = []

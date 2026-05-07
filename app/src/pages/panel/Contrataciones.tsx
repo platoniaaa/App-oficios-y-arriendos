@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
-import { usersById } from '@/mocks/users'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
+import { usersById } from '@/mocks/users' // TODO: query a profiles cuando sea necesario
 import { servicios } from '@/mocks/servicios'
 import { herramientas } from '@/mocks/herramientas'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -28,12 +28,16 @@ const tabs: { id: 'todas' | 'activas' | 'finalizadas' | 'canceladas'; label: str
 
 export function Contrataciones() {
   const user = useAuth((s) => s.user())!
-  const items = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.clienteId === user.id || c.ofertanteId === user.id)),
+  const { data: itemsData, loading } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
+  const items = itemsData ?? []
   const [tab, setTab] = useState<(typeof tabs)[number]['id']>('todas')
 
   const lista = items.filter((c) => tabs.find((t) => t.id === tab)!.filter(c.estado))
+
+  if (loading) return <div className="text-center text-ink-400 py-12">Cargando…</div>
 
   return (
     <div className="space-y-8">

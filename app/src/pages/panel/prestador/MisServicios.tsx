@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { servicios } from '@/mocks/servicios'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { listServiciosDeUsuario } from '@/lib/queries/servicios'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StarRating } from '@/components/ui/StarRating'
@@ -10,11 +11,21 @@ import { Plus, Edit3, Pause, Copy, Trash2, Eye } from 'lucide-react'
 
 export function PrestadorMisServicios() {
   const user = useAuth((s) => s.user())!
-  const mios = servicios.filter((s) => s.trabajadorId === user.id)
-  const items = useContrataciones((s) => s.items)
+  const { data: miosData, loading } = useFetch(
+    () => listServiciosDeUsuario(user.id),
+    [user.id],
+  )
+  const { data: contrsData } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
+  )
+  const mios = miosData ?? []
+  const items = contrsData ?? []
 
   const contratacionesPorServicio = (sid: string) =>
     items.filter((c) => c.itemId === sid && c.tipo === 'servicio').length
+
+  if (loading) return <div className="text-center text-ink-400 py-12">Cargando…</div>
 
   return (
     <div className="space-y-6">

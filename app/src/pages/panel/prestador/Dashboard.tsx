@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
-import { useResenas } from '@/stores/useResenas'
 import { resumenFinanciero, ingresoPorMes } from '@/mocks/finanzas'
 import { servicios } from '@/mocks/servicios'
 import { usersById } from '@/mocks/users'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { listResenasParaUsuario } from '@/lib/queries/resenas'
+import { useFetch } from '@/hooks/useFetch'
 import { KpiCard } from '@/components/feature/KpiCard'
 import { RevenueChart } from '@/components/feature/RevenueChart'
 import { Avatar } from '@/components/ui/Avatar'
@@ -28,10 +28,13 @@ export function PrestadorDashboard() {
   const user = useAuth((s) => s.user())!
   const fin = resumenFinanciero(user.id)
   const chartData = ingresoPorMes(user.id)
-  const contrs = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio')),
+  const { data: contrsData } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
   )
-  const resenas = useResenas(useShallow((s) => s.paraUsuario(user.id).slice(0, 3)))
+  const { data: resenasData } = useFetch(() => listResenasParaUsuario(user.id), [user.id])
+  const contrs = (contrsData ?? []).filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio')
+  const resenas = (resenasData ?? []).slice(0, 3)
 
   const nuevas = contrs.filter((c) => c.estado === 'solicitada').length
   const enEjecucion = contrs.filter((c) => c.estado === 'en_ejecucion' || c.estado === 'pago_en_escrow').length

@@ -1,17 +1,22 @@
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 import { useAuth } from '@/stores/useAuth'
-import { herramientas } from '@/mocks/herramientas'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { listHerramientasDeUsuario } from '@/lib/queries/herramientas'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
 import { bloqueosDeUsuario } from '@/mocks/agenda'
 import { CalendarioInventario } from '@/components/feature/CalendarioInventario'
 import { Select } from '@/components/ui/Input'
 
 export function ArrendadorCalendario() {
   const user = useAuth((s) => s.user())!
-  const todas = herramientas.filter((h) => h.propietarioId === user.id)
-  const contrs = useContrataciones(
-    useShallow((s) => s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'arriendo')),
+  const { data: todasData } = useFetch(() => listHerramientasDeUsuario(user.id), [user.id])
+  const todas = todasData ?? []
+  const { data: contrsData } = useFetch(
+    () => listContratacionesDeUsuario(user.id),
+    [user.id],
+  )
+  const contrs = (contrsData ?? []).filter(
+    (c) => c.ofertanteId === user.id && c.tipo === 'arriendo',
   )
   const [filtro, setFiltro] = useState('')
 

@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal'
 import { CheckCircle2, MapPin, Truck, ShieldCheck, MessageCircle } from 'lucide-react'
 import { formatCLP } from '@/lib/format'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { crearContratacion } from '@/lib/queries/contrataciones'
 import { useChat } from '@/stores/useChat'
 import { fees } from '@/config/brand'
 import { getHerramienta } from '@/lib/queries/herramientas'
@@ -23,7 +23,6 @@ export function HerramientaDetalle() {
   const [open, setOpen] = useState(false)
   const user = useAuth((s) => s.user())
   const nav = useNavigate()
-  const add = useContrataciones((s) => s.add)
   const startOrGet = useChat((s) => s.startOrGet)
 
   const { data, loading } = useFetch(async () => {
@@ -173,25 +172,29 @@ export function HerramientaDetalle() {
         onClose={() => setOpen(false)}
         precioDia={h.tarifa.porDia ?? 0}
         deposito={h.depositoGarantia}
-        onConfirm={(dias, desde) => {
+        onConfirm={async (dias, desde) => {
           if (!user) return nav('/login')
           if (!owner) return
           const monto = (h.tarifa.porDia ?? 0) * dias
           const fechaFin = new Date(new Date(desde).getTime() + dias * 86400000).toISOString()
-          const c = add({
-            tipo: 'arriendo',
-            clienteId: user.id,
-            ofertanteId: owner.id,
-            itemId: h.id,
-            fechaSolicitud: new Date().toISOString(),
-            fechaInicio: desde,
-            fechaFin,
-            monto,
-            deposito: h.depositoGarantia,
-            estado: 'aceptada_cliente',
-          })
-          setOpen(false)
-          nav(`/panel/contratacion/${c.id}`)
+          try {
+            const c = await crearContratacion({
+              tipo: 'arriendo',
+              cliente_id: user.id,
+              ofertante_id: owner.id,
+              herramienta_id: h.id,
+              fecha_inicio: desde,
+              fecha_fin: fechaFin,
+              monto,
+              deposito: h.depositoGarantia,
+              estado: 'aceptada_cliente',
+            })
+            setOpen(false)
+            nav(`/panel/contratacion/${c.id}`)
+          } catch (e) {
+            console.error(e)
+            alert('No se pudo crear la solicitud. Intenta de nuevo.')
+          }
         }}
       />
     </div>

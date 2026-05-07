@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { usersById } from '@/mocks/users' // TODO: reemplazar por query real cuando migremos reseñas
-import { useResenas } from '@/stores/useResenas'
 import { useAuth } from '@/stores/useAuth'
 import { useChat } from '@/stores/useChat'
-import { getProfile } from '@/lib/queries/perfiles'
+import { getProfile, getProfilesByIds } from '@/lib/queries/perfiles'
 import { listServiciosDeUsuario } from '@/lib/queries/servicios'
 import { listHerramientasDeUsuario } from '@/lib/queries/herramientas'
+import { listResenasParaUsuario } from '@/lib/queries/resenas'
 import { useFetch } from '@/hooks/useFetch'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
@@ -42,25 +41,26 @@ export function PerfilPublico() {
   const me = useAuth((s) => s.user())
   const nav = useNavigate()
   const startOrGet = useChat((s) => s.startOrGet)
-  const paraUsuario = useResenas((s) => s.paraUsuario)
 
   const { data, loading } = useFetch(async () => {
     if (!userId) return null
     const u = await getProfile(userId)
     if (!u) return null
-    const [misServicios, misHerramientas] = await Promise.all([
+    const [misServicios, misHerramientas, resenas] = await Promise.all([
       listServiciosDeUsuario(userId),
       listHerramientasDeUsuario(userId),
+      listResenasParaUsuario(userId),
     ])
-    return { u, misServicios, misHerramientas }
+    const autoresIds = resenas.map((r) => r.autorId)
+    const autoresById = await getProfilesByIds(autoresIds)
+    return { u, misServicios, misHerramientas, resenas, autoresById }
   }, [userId])
 
   if (loading) {
     return <div className="container-page py-12 text-center text-ink-400">Cargando…</div>
   }
   if (!data) return <Navigate to="/" replace />
-  const { u, misServicios, misHerramientas } = data
-  const resenas = paraUsuario(u.id)
+  const { u, misServicios, misHerramientas, resenas, autoresById } = data
   const totalTrabajos = u.totalTrabajosCompletados ?? u.totalArriendosCompletados ?? 0
   const esNuevo = !!u.nuevoEnPlataforma || (resenas.length === 0 && totalTrabajos === 0)
   const galeriaDeTrabajos = misServicios.flatMap((s) => s.galeriaTrabajos).slice(0, 9)
@@ -328,7 +328,7 @@ export function PerfilPublico() {
               ) : (
                 <ul className="space-y-4">
                   {resenasFiltradas.slice(0, resenasVisibles).map((r) => {
-                    const autor = usersById[r.autorId]
+                    const autor = autoresById[r.autorId]
                     return (
                       <li key={r.id} className="card p-5">
                         <div className="flex items-start gap-3">

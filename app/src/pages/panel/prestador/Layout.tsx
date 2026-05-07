@@ -1,15 +1,18 @@
 import { PanelRolLayout } from '@/components/layout/PanelRolLayout'
 import { LayoutDashboard, Wrench, Inbox, Calendar, Wallet, Star, UserCog, Settings } from 'lucide-react'
 import { useAuth } from '@/stores/useAuth'
-import { useContrataciones } from '@/stores/useContrataciones'
+import { listContratacionesDeUsuario } from '@/lib/queries/contrataciones'
+import { useFetch } from '@/hooks/useFetch'
 
 export function PrestadorLayout() {
   const user = useAuth((s) => s.user())
-  const nuevas = useContrataciones((s) =>
-    user
-      ? s.items.filter((c) => c.ofertanteId === user.id && c.tipo === 'servicio' && c.estado === 'solicitada').length
-      : 0,
+  const { data: contrs } = useFetch(
+    () => (user ? listContratacionesDeUsuario(user.id) : Promise.resolve([])),
+    [user?.id],
   )
+  const nuevas = (contrs ?? []).filter(
+    (c) => user && c.ofertanteId === user.id && c.tipo === 'servicio' && c.estado === 'solicitada',
+  ).length
 
   return (
     <PanelRolLayout

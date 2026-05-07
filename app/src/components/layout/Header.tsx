@@ -141,6 +141,7 @@ export function Header() {
               <NavLink
                 key={l.to}
                 to={l.to}
+                data-tour={l.to === '/asistente' ? 'header-asistente' : undefined}
                 className={({ isActive }) =>
                   cn(
                     'inline-flex items-center gap-1 transition',
@@ -155,7 +156,7 @@ export function Header() {
           </nav>
 
           {/* Publicar dropdown */}
-          <div className="relative ml-auto" ref={publicarRef}>
+          <div className="relative ml-auto" ref={publicarRef} data-tour="header-publicar">
             <button
               type="button"
               onClick={() => setPublicarOpen((x) => !x)}

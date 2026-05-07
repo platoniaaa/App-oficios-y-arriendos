@@ -120,7 +120,7 @@ export function Registro() {
       setError(error)
       return
     }
-    if (user) nav('/panel')
+    if (user) nav('/bienvenida')
   }
 
   if (needsConfirm) {

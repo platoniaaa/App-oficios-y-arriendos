@@ -5,6 +5,7 @@ import { LayoutDashboard, Briefcase, FileText, MessageCircle, Bell, Star, UserCo
 import { cn } from '@/lib/cn'
 import { useNotifCount } from '@/hooks/useNotifCount'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
+import { PanelTour } from '@/components/feature/PanelTour'
 
 const links = [
   { to: '/panel', label: 'Resumen', icon: LayoutDashboard, exact: true },
@@ -25,7 +26,7 @@ export function PanelLayout() {
     <div className="container-page py-8 md:py-12">
       <div className="grid gap-8 md:grid-cols-[260px_1fr]">
         <aside className="space-y-5">
-          <div className="card p-5 space-y-4">
+          <div className="card p-5 space-y-4" data-tour="rol-switcher">
             <div className="flex items-center gap-3">
               <Avatar src={user.fotoPerfil} name={user.nombre} size="md" />
               <div className="min-w-0">
@@ -35,7 +36,7 @@ export function PanelLayout() {
             </div>
             <RolSwitcher user={user} />
           </div>
-          <nav className="rounded-2xl border border-navy/10 bg-paper p-2">
+          <nav className="rounded-2xl border border-navy/10 bg-paper p-2" data-tour="panel-nav">
             {links.map((l) => (
               <NavLink
                 key={l.to}
@@ -65,6 +66,7 @@ export function PanelLayout() {
           <Outlet />
         </section>
       </div>
+      <PanelTour userId={user.id} />
     </div>
   )
 }

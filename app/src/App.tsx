@@ -10,6 +10,7 @@ import { PerfilPublico } from '@/pages/PerfilPublico'
 import { Login } from '@/pages/Login'
 import { Registro } from '@/pages/Registro'
 import { Recuperar } from '@/pages/Recuperar'
+import { Bienvenida } from '@/pages/Bienvenida'
 import { Asistente } from '@/pages/Asistente'
 import { ComoFunciona } from '@/pages/ComoFunciona'
 import { Terminos, Privacidad } from '@/pages/Legal'
@@ -67,6 +68,14 @@ export function App() {
         <Route path="login" element={<Login />} />
         <Route path="registro" element={<Registro />} />
         <Route path="recuperar" element={<Recuperar />} />
+        <Route
+          path="bienvenida"
+          element={
+            <PrivateRoute>
+              <Bienvenida />
+            </PrivateRoute>
+          }
+        />
         <Route path="asistente" element={<Asistente />} />
         <Route path="como-funciona" element={<ComoFunciona />} />
         <Route path="terminos" element={<Terminos />} />

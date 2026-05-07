@@ -7,9 +7,7 @@ import { todasLasComunas } from '@/mocks/regiones'
 import { ArrowLeft, ArrowRight, Upload, Plus, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { servicios } from '@/mocks/servicios'
-import { uid } from '@/lib/mockApi'
-import type { ServicioOficio } from '@/types'
+import { crearServicio } from '@/lib/queries/servicios'
 
 const steps = ['Oficio', 'Descripción', 'Tarifa', 'Zonas', 'Galería', 'Confirmar']
 
@@ -18,6 +16,8 @@ export function PublicarServicio() {
   const [step, setStep] = useState(0)
   const [zonas, setZonas] = useState<string[]>([])
   const [galeria, setGaleria] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
     oficio: '',
     categorias: [] as string[],
@@ -29,24 +29,34 @@ export function PublicarServicio() {
   })
   const nav = useNavigate()
 
-  function publicar() {
-    const nuevo: ServicioOficio = {
-      id: uid('s'),
-      trabajadorId: user.id,
-      oficio: form.oficio,
-      categorias: form.categorias,
-      descripcion: form.descripcion,
-      experienciaAnios: form.experiencia,
-      tarifaReferencia: { tipo: form.tipoTarifa, monto: form.tipoTarifa === 'a_convenir' ? undefined : form.monto },
-      zonasCobertura: zonas,
-      disponibilidad: form.disponibilidad,
-      certificaciones: [],
-      galeriaTrabajos: galeria.length > 0 ? galeria : ['https://picsum.photos/seed/new-serv/800/600'],
-      totalTrabajosRealizados: 0,
-      calificacion: 0,
+  async function publicar() {
+    setError(null)
+    if (!form.oficio) {
+      setError('Elige un oficio.')
+      return
     }
-    servicios.unshift(nuevo)
-    nav('/panel/mis-publicaciones')
+    setSubmitting(true)
+    try {
+      await crearServicio({
+        trabajador_id: user.id,
+        oficio: form.oficio,
+        categorias: form.categorias,
+        descripcion: form.descripcion,
+        experiencia_anios: form.experiencia,
+        tarifa_tipo: form.tipoTarifa,
+        tarifa_monto: form.tipoTarifa === 'a_convenir' ? null : form.monto,
+        zonas_cobertura: zonas,
+        disponibilidad: form.disponibilidad,
+        galeria_trabajos: galeria,
+        faq: null,
+        estado: 'activo',
+      })
+      nav('/panel/mis-publicaciones')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo publicar.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -222,8 +232,19 @@ export function PublicarServicio() {
           </div>
         )}
 
+        {error && (
+          <div className="mt-4 rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+            {error}
+          </div>
+        )}
+
         <div className="mt-8 flex items-center justify-between">
-          <Button variant="ghost" size="md" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
+          <Button
+            variant="ghost"
+            size="md"
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0 || submitting}
+          >
             <ArrowLeft className="h-4 w-4" /> Atrás
           </Button>
           {step < steps.length - 1 ? (
@@ -231,7 +252,7 @@ export function PublicarServicio() {
               Continuar <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="ember" size="md" onClick={publicar}>
+            <Button variant="ember" size="md" onClick={publicar} loading={submitting} disabled={submitting}>
               <Plus className="h-4 w-4" /> Publicar
             </Button>
           )}

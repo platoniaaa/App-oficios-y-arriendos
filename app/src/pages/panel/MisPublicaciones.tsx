@@ -1,16 +1,29 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { servicios } from '@/mocks/servicios'
-import { herramientas } from '@/mocks/herramientas'
 import { StarRating } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Plus } from 'lucide-react'
+import { listServiciosDeUsuario } from '@/lib/queries/servicios'
+import { listHerramientasDeUsuario } from '@/lib/queries/herramientas'
+import { useFetch } from '@/hooks/useFetch'
 
 export function MisPublicaciones() {
   const user = useAuth((s) => s.user())!
-  const misServicios = servicios.filter((s) => s.trabajadorId === user.id)
-  const misHerramientas = herramientas.filter((h) => h.propietarioId === user.id)
+  const { data: misServicios, loading: loadingS } = useFetch(
+    () => listServiciosDeUsuario(user.id),
+    [user.id],
+  )
+  const { data: misHerramientas, loading: loadingH } = useFetch(
+    () => listHerramientasDeUsuario(user.id),
+    [user.id],
+  )
+
+  const servicios = misServicios ?? []
+  const herramientas = misHerramientas ?? []
+  if (loadingS || loadingH) {
+    return <div className="text-center text-ink-400 py-12">Cargando…</div>
+  }
 
   return (
     <div className="space-y-10">
@@ -26,7 +39,7 @@ export function MisPublicaciones() {
             <Plus className="h-4 w-4" /> Nuevo servicio
           </Link>
         </div>
-        {misServicios.length === 0 ? (
+        {servicios.length === 0 ? (
           <EmptyState
             title="No has publicado servicios"
             description="Crea tu primer perfil de oficio y empieza a recibir solicitudes."
@@ -38,7 +51,7 @@ export function MisPublicaciones() {
           />
         ) : (
           <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {misServicios.map((s) => (
+            {servicios.map((s) => (
               <li key={s.id} className="card p-0 overflow-hidden">
                 <Link to={`/servicio/${s.id}`} className="block">
                   <div className="aspect-[4/3] bg-cream-deep">
@@ -65,7 +78,7 @@ export function MisPublicaciones() {
             <Plus className="h-4 w-4" /> Nueva herramienta
           </Link>
         </div>
-        {misHerramientas.length === 0 ? (
+        {herramientas.length === 0 ? (
           <EmptyState
             title="No has publicado herramientas"
             description="Si tienes equipos sin uso, puedes arrendarlos con depósito en escrow."
@@ -77,7 +90,7 @@ export function MisPublicaciones() {
           />
         ) : (
           <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {misHerramientas.map((h) => (
+            {herramientas.map((h) => (
               <li key={h.id} className="card p-0 overflow-hidden">
                 <Link to={`/herramienta/${h.id}`} className="block">
                   <div className="aspect-[4/3] bg-cream-deep">

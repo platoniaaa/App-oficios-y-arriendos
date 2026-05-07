@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { servicios } from '@/mocks/servicios'
-import { usersById } from '@/mocks/users'
+import { usersById } from '@/mocks/users' // TODO: reemplazar por query real cuando migremos reseñas
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating, InteractiveStars } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
@@ -16,10 +15,12 @@ import { useChat } from '@/stores/useChat'
 import { useResenas } from '@/stores/useResenas'
 import { formatRelative } from '@/lib/format'
 import { fees } from '@/config/brand'
+import { getServicio } from '@/lib/queries/servicios'
+import { getProfile } from '@/lib/queries/perfiles'
+import { useFetch } from '@/hooks/useFetch'
 
 export function ServicioDetalle() {
   const { id } = useParams()
-  const servicio = servicios.find((s) => s.id === id)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [openContratar, setOpenContratar] = useState(false)
   const user = useAuth((s) => s.user())
@@ -28,8 +29,23 @@ export function ServicioDetalle() {
   const startOrGet = useChat((s) => s.startOrGet)
   const paraUsuario = useResenas((s) => s.paraUsuario)
 
-  if (!servicio) return <Navigate to="/buscar?tipo=servicios" replace />
-  const trab = usersById[servicio.trabajadorId]
+  const { data, loading } = useFetch(async () => {
+    if (!id) return null
+    const servicio = await getServicio(id)
+    if (!servicio) return null
+    const trab = await getProfile(servicio.trabajadorId)
+    return { servicio, trab }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="container-page py-12 text-center text-ink-400">
+        Cargando…
+      </div>
+    )
+  }
+  if (!data) return <Navigate to="/buscar?tipo=servicios" replace />
+  const { servicio, trab } = data
   const resenas = trab ? paraUsuario(trab.id) : []
 
   return (

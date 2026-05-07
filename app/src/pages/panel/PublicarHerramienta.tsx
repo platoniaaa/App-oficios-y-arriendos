@@ -7,9 +7,8 @@ import { todasLasComunas } from '@/mocks/regiones'
 import { ArrowLeft, ArrowRight, Plus, Upload, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { herramientas } from '@/mocks/herramientas'
-import { uid } from '@/lib/mockApi'
-import type { Herramienta, RetiroModalidad, EstadoHerramienta } from '@/types'
+import { crearHerramienta } from '@/lib/queries/herramientas'
+import type { RetiroModalidad, EstadoHerramienta } from '@/types'
 
 const steps = ['Categoría', 'Info', 'Fotos', 'Tarifas', 'Ubicación', 'Confirmar']
 
@@ -17,6 +16,8 @@ export function PublicarHerramienta() {
   const user = useAuth((s) => s.user())!
   const [step, setStep] = useState(0)
   const [fotos, setFotos] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
     categoria: '',
     subcategoria: '',
@@ -37,33 +38,41 @@ export function PublicarHerramienta() {
   })
   const nav = useNavigate()
 
-  function publicar() {
-    const nueva: Herramienta = {
-      id: uid('h'),
-      propietarioId: user.id,
-      titulo: form.titulo,
-      categoria: form.categoria,
-      subcategoria: form.subcategoria,
-      marca: form.marca,
-      modelo: form.modelo,
-      descripcion: form.descripcion,
-      estado: form.estado,
-      fotos: fotos.length ? fotos : ['https://picsum.photos/seed/new-tool/900/700'],
-      tarifa: {
-        porHora: form.porHora || undefined,
-        porDia: form.porDia || undefined,
-        porSemana: form.porSemana || undefined,
-      },
-      depositoGarantia: form.deposito,
-      requiereEntrega: form.delivery,
-      comunaUbicacion: form.comuna,
-      retiro: form.retiro,
-      disponibilidad: [{ desde: form.fechaDesde, hasta: form.fechaHasta }],
-      totalArriendos: 0,
-      calificacion: 0,
+  async function publicar() {
+    setError(null)
+    if (!form.titulo || !form.categoria) {
+      setError('Necesitas título y categoría.')
+      return
     }
-    herramientas.unshift(nueva)
-    nav('/panel/mis-publicaciones')
+    setSubmitting(true)
+    try {
+      await crearHerramienta({
+        propietario_id: user.id,
+        titulo: form.titulo,
+        categoria: form.categoria,
+        subcategoria: form.subcategoria || null,
+        marca: form.marca || null,
+        modelo: form.modelo || null,
+        descripcion: form.descripcion || null,
+        fotos,
+        estado_fisico: form.estado,
+        tarifa_hora: form.porHora || null,
+        tarifa_dia: form.porDia || null,
+        tarifa_semana: form.porSemana || null,
+        deposito_garantia: form.deposito,
+        requiere_entrega: form.delivery,
+        comuna_ubicacion: form.comuna,
+        retiro: form.retiro,
+        disponibilidad: [{ desde: form.fechaDesde, hasta: form.fechaHasta }],
+        estado_operacional: 'disponible',
+        estado: 'activo',
+      })
+      nav('/panel/mis-publicaciones')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo publicar.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const cat = categoriasHerramientas.find((c) => c.nombre === form.categoria)
@@ -211,8 +220,19 @@ export function PublicarHerramienta() {
           </div>
         )}
 
+        {error && (
+          <div className="mt-4 rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+            {error}
+          </div>
+        )}
+
         <div className="mt-8 flex items-center justify-between">
-          <Button variant="ghost" size="md" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>
+          <Button
+            variant="ghost"
+            size="md"
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0 || submitting}
+          >
             <ArrowLeft className="h-4 w-4" /> Atrás
           </Button>
           {step < steps.length - 1 ? (
@@ -220,7 +240,7 @@ export function PublicarHerramienta() {
               Continuar <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button variant="ember" size="md" onClick={publicar}>
+            <Button variant="ember" size="md" onClick={publicar} loading={submitting} disabled={submitting}>
               <Plus className="h-4 w-4" /> Publicar
             </Button>
           )}

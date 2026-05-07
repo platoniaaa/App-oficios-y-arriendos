@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Filter, Search, X, Truck, Hammer, Wrench, CheckCircle2, Zap } from 'lucide-react'
-import { servicios } from '@/mocks/servicios'
-import { herramientas } from '@/mocks/herramientas'
-import { usersById } from '@/mocks/users'
 import { oficios, categoriasHerramientas } from '@/mocks/categorias'
 import { todasLasComunas } from '@/mocks/regiones'
 import type { ServicioOficio, Herramienta, User } from '@/types'
+import { listServicios } from '@/lib/queries/servicios'
+import { listHerramientas } from '@/lib/queries/herramientas'
+import { getProfilesByIds } from '@/lib/queries/perfiles'
+import { useFetch } from '@/hooks/useFetch'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
@@ -60,6 +61,20 @@ export function Buscar() {
     setParams(p, { replace: true })
   }
 
+  const { data: dataset, loading } = useFetch(async () => {
+    const [servicios, herramientas] = await Promise.all([listServicios(), listHerramientas()])
+    const ids = [
+      ...servicios.map((s) => s.trabajadorId),
+      ...herramientas.map((h) => h.propietarioId),
+    ]
+    const usersById = await getProfilesByIds(ids)
+    return { servicios, herramientas, usersById }
+  }, [])
+
+  const servicios: ServicioOficio[] = dataset?.servicios ?? []
+  const herramientas: Herramienta[] = dataset?.herramientas ?? []
+  const usersById: Record<string, User> = dataset?.usersById ?? {}
+
   const items: Item[] = useMemo(() => {
     const sItems: ItemServicio[] = servicios.map((s) => ({
       kind: 'servicio',
@@ -82,7 +97,7 @@ export function Buscar() {
       pop: h.totalArriendos,
     }))
     return [...sItems, ...hItems]
-  }, [])
+  }, [servicios, herramientas, usersById])
 
   const resultados = useMemo(() => {
     let lista = items.slice()
@@ -299,7 +314,20 @@ export function Buscar() {
         </aside>
 
         <section>
-          {resultados.length === 0 ? (
+          {loading ? (
+            <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <li key={i} className="card p-0 overflow-hidden animate-pulse">
+                  <div className="aspect-[4/3] bg-ink-100" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 w-2/3 rounded bg-ink-100" />
+                    <div className="h-3 w-1/2 rounded bg-ink-100" />
+                    <div className="h-3 w-1/3 rounded bg-ink-100" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : resultados.length === 0 ? (
             <EmptyState
               title={
                 items.length === 0

@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { herramientas } from '@/mocks/herramientas'
-import { usersById } from '@/mocks/users'
 import { Avatar } from '@/components/ui/Avatar'
 import { StarRating } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
@@ -15,10 +13,12 @@ import { useAuth } from '@/stores/useAuth'
 import { useContrataciones } from '@/stores/useContrataciones'
 import { useChat } from '@/stores/useChat'
 import { fees } from '@/config/brand'
+import { getHerramienta } from '@/lib/queries/herramientas'
+import { getProfile } from '@/lib/queries/perfiles'
+import { useFetch } from '@/hooks/useFetch'
 
 export function HerramientaDetalle() {
   const { id } = useParams()
-  const h = herramientas.find((x) => x.id === id)
   const [active, setActive] = useState(0)
   const [open, setOpen] = useState(false)
   const user = useAuth((s) => s.user())
@@ -26,8 +26,19 @@ export function HerramientaDetalle() {
   const add = useContrataciones((s) => s.add)
   const startOrGet = useChat((s) => s.startOrGet)
 
-  if (!h) return <Navigate to="/buscar?tipo=herramientas" replace />
-  const owner = usersById[h.propietarioId]
+  const { data, loading } = useFetch(async () => {
+    if (!id) return null
+    const h = await getHerramienta(id)
+    if (!h) return null
+    const owner = await getProfile(h.propietarioId)
+    return { h, owner }
+  }, [id])
+
+  if (loading) {
+    return <div className="container-page py-12 text-center text-ink-400">Cargando…</div>
+  }
+  if (!data) return <Navigate to="/buscar?tipo=herramientas" replace />
+  const { h, owner } = data
 
   return (
     <div className="container-page py-8 md:py-12">

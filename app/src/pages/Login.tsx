@@ -18,13 +18,19 @@ export function Login() {
     e.preventDefault()
     setLoading(true)
     setErr('')
-    const { user, error } = await login({ email, password })
-    setLoading(false)
-    if (user) {
-      nav('/panel')
-      return
+    try {
+      const { user, error } = await login({ email, password })
+      if (user) {
+        nav('/panel')
+        return
+      }
+      setErr(error ?? 'No se pudo iniciar sesión.')
+    } catch (e) {
+      console.error('[Login.submit]', e)
+      setErr(e instanceof Error ? e.message : 'No se pudo iniciar sesión.')
+    } finally {
+      setLoading(false)
     }
-    setErr(error ?? 'No se pudo iniciar sesión.')
   }
 
   return (

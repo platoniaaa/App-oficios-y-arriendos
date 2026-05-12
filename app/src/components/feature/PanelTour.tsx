@@ -14,7 +14,7 @@ const steps: Step[] = [
     target: '[data-tour="rol-switcher"]',
     titulo: 'Cambia de rol cuando quieras',
     texto:
-      'Aquí alternas entre Comprador, Trabajador y Arrendador. Cada modo tiene su propio panel con las herramientas que necesitas.',
+      'Aquí alternas entre Cliente, Trabajador y Arrendador. Cada modo tiene su propio panel con las herramientas que necesitas.',
     placement: 'right',
   },
   {

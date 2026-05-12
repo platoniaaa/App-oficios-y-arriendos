@@ -5,7 +5,7 @@ import {
   ShieldCheck,
   Hammer,
   Wrench,
-  ShoppingBag,
+  UserRound,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
@@ -45,8 +45,8 @@ export function Bienvenida() {
       cuerpo: (
         <ul className="grid gap-3">
           <Pista
-            icon={<ShoppingBag className="h-5 w-5" />}
-            titulo="Comprador"
+            icon={<UserRound className="h-5 w-5" />}
+            titulo="Cliente"
             desc="Contrata maestros o arrienda herramientas. Pagas al final, cuando todo esté listo."
             activo
           />

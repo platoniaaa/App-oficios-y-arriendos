@@ -59,50 +59,81 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
   login: async ({ email, password }) => {
     set({ loading: true })
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error || !data.user) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error || !data.user) {
+        set({ loading: false })
+        return { user: null, error: traduceError(error?.message) }
+      }
+      let u: User | null = null
+      try {
+        u = await fetchProfile(data.user.id)
+      } catch (e) {
+        console.error('[login] fetchProfile falló', e)
+      }
+      set({ userId: data.user.id, currentUser: u, loading: false })
+      if (!u) {
+        return { user: null, error: 'No pudimos cargar tu perfil. Reintenta en unos segundos.' }
+      }
+      return { user: u, error: null }
+    } catch (e) {
+      console.error('[login] excepción inesperada', e)
       set({ loading: false })
-      return { user: null, error: traduceError(error?.message) }
+      return {
+        user: null,
+        error: e instanceof Error ? e.message : 'No se pudo iniciar sesión.',
+      }
     }
-    const u = await fetchProfile(data.user.id)
-    set({ userId: data.user.id, currentUser: u, loading: false })
-    return { user: u, error: null }
   },
 
   register: async ({ email, password, perfil }) => {
     set({ loading: true })
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { nombre: perfil.nombre } },
-    })
-    if (error) {
-      set({ loading: false })
-      return { user: null, error: traduceError(error.message) }
-    }
-    if (!data.user) {
-      set({ loading: false })
-      return { user: null, error: 'Error inesperado al registrar.' }
-    }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { nombre: perfil.nombre } },
+      })
+      if (error) {
+        set({ loading: false })
+        return { user: null, error: traduceError(error.message) }
+      }
+      if (!data.user) {
+        set({ loading: false })
+        return { user: null, error: 'Error inesperado al registrar.' }
+      }
 
-    // El trigger en BD ya creó el row en profiles con email+nombre. Actualizamos el resto.
-    if (Object.keys(perfil).length > 1) {
+      // El trigger en BD ya creó el row en profiles con email+nombre. Actualizamos el resto.
+      if (Object.keys(perfil).length > 1) {
+        try {
+          await updateProfile(data.user.id, { ...perfil, email })
+        } catch (e) {
+          console.warn('[register] profile patch error', e)
+        }
+      }
+
+      // Si Supabase pide confirmar email, no hay session aún.
+      if (!data.session) {
+        set({ loading: false })
+        return { user: null, error: 'CONFIRMAR_EMAIL' }
+      }
+
+      let u: User | null = null
       try {
-        await updateProfile(data.user.id, { ...perfil, email })
+        u = await fetchProfile(data.user.id)
       } catch (e) {
-        console.warn('[register] profile patch error', e)
+        console.error('[register] fetchProfile falló', e)
+      }
+      set({ userId: data.user.id, currentUser: u, loading: false })
+      return { user: u, error: null }
+    } catch (e) {
+      console.error('[register] excepción inesperada', e)
+      set({ loading: false })
+      return {
+        user: null,
+        error: e instanceof Error ? e.message : 'No se pudo crear la cuenta.',
       }
     }
-
-    // Si Supabase pide confirmar email, no hay session aún.
-    if (!data.session) {
-      set({ loading: false })
-      return { user: null, error: 'CONFIRMAR_EMAIL' }
-    }
-
-    const u = await fetchProfile(data.user.id)
-    set({ userId: data.user.id, currentUser: u, loading: false })
-    return { user: u, error: null }
   },
 
   logout: async () => {

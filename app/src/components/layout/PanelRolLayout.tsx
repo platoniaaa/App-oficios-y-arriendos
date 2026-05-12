@@ -37,12 +37,12 @@ export function PanelRolLayout({ rol, titulo, subtitulo, links }: Props) {
   function SideContent() {
     return (
       <div className="flex h-full flex-col">
-        <div className="px-4 pt-5 pb-4 border-b border-ink-100">
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar src={user!.fotoPerfil} name={user!.nombre} size="sm" />
+        <div className="px-4 pt-5 pb-4 border-b border-ink-100 space-y-4">
+          <div className="flex items-center gap-3">
+            <Avatar src={user!.fotoPerfil} name={user!.nombre} size="md" />
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold">{user!.nombre}</p>
-              <p className="text-[10px] text-ink-400">{titulo}</p>
+              <p className="truncate font-display text-lg font-semibold">{user!.nombre}</p>
+              <p className="truncate text-xs text-ink-400">{user!.roles.join(' · ')}</p>
             </div>
           </div>
           <RolSwitcher user={user!} />

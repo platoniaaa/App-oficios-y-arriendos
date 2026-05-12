@@ -3,6 +3,7 @@ import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { cn } from '@/lib/cn'
 import type { ComponentType } from 'react'
 import { Menu, X } from 'lucide-react'
@@ -109,7 +110,9 @@ export function PanelRolLayout({ rol, titulo, subtitulo, links }: Props) {
           <Avatar src={user.fotoPerfil} name={user.nombre} size="sm" />
         </div>
         <main className="px-4 py-6 sm:px-6 lg:px-10 lg:py-10 max-w-[1200px] mx-auto w-full">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

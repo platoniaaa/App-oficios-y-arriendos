@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 import { useNotifCount } from '@/hooks/useNotifCount'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
 import { PanelTour } from '@/components/feature/PanelTour'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 
 const links = [
   { to: '/panel', label: 'Resumen', icon: LayoutDashboard, exact: true },
@@ -63,7 +64,9 @@ export function PanelLayout() {
           </nav>
         </aside>
         <section>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </section>
       </div>
       <PanelTour userId={user.id} />

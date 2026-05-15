@@ -2,17 +2,15 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
-import { VerificationBadge } from '@/components/ui/Badge'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { regiones } from '@/mocks/regiones'
-import { Upload, Eye, ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { Eye, CheckCircle2 } from 'lucide-react'
 import { useState } from 'react'
-import type { EstadoVerificacion } from '@/types'
+import { VerificacionesCard, verifItemsTrabajador } from '@/components/feature/VerificacionesCard'
 
 export function PrestadorPerfil() {
   const user = useAuth((s) => s.user())!
   const setUser = useAuth((s) => s.setUser)
-  const upsert = useAuth((s) => s.upsertVerificaciones)
   const [form, setForm] = useState({ ...user })
 
   const regionesOpt = regiones.map((r) => ({ value: r.nombre, label: r.nombre }))
@@ -43,14 +41,13 @@ export function PrestadorPerfil() {
             <Avatar src={form.fotoPerfil} name={form.nombre} size="xl" />
             <div>
               <p className="font-display text-lg font-semibold">Foto de perfil</p>
-              <p className="text-sm text-ink-400">Una foto clara genera confianza.</p>
-              <button
-                type="button"
-                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ember hover:underline"
-                onClick={() => setForm({ ...form, fotoPerfil: `https://i.pravatar.cc/240?img=${Math.ceil(Math.random() * 70)}` })}
-              >
-                <Upload className="h-3 w-3" /> Cambiar foto
-              </button>
+              <p className="text-sm text-ink-400">
+                Cambia tu foto desde{' '}
+                <Link to="/panel/perfil" className="font-semibold text-ember hover:underline">
+                  Mi cuenta
+                </Link>
+                .
+              </p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -73,38 +70,7 @@ export function PrestadorPerfil() {
           </div>
         </div>
 
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-moss" />
-            <h2 className="font-display text-xl font-semibold">Verificaciones</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(
-              [
-                ['rut', 'RUT'],
-                ['cedula', 'Cédula'],
-                ['antecedentes', 'Antecedentes'],
-                ['certificaciones', 'Certificaciones'],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="rounded-xl border-2 border-dashed border-ink-200 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{label}</p>
-                  <VerificationBadge estado={user.verificacion[key] as EstadoVerificacion} label={label} />
-                </div>
-                {user.verificacion[key] !== 'validada' && (
-                  <button
-                    type="button"
-                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ember hover:underline"
-                    onClick={() => upsert({ [key]: 'validada' } as Partial<typeof user.verificacion>)}
-                  >
-                    <Upload className="h-3 w-3" /> Subir documento (demo)
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <VerificacionesCard items={verifItemsTrabajador} />
       </form>
     </div>
   )

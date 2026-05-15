@@ -59,7 +59,6 @@ export function Footer() {
           <p>
             © {new Date().getFullYear()} {brand.name} — hecho con manos ásperas en Chile.
           </p>
-          <p className="font-mono">MVP · prototipo frontend · datos mock</p>
         </div>
       </div>
     </footer>

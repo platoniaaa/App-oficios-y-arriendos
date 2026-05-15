@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { users } from '@/mocks/users'
 import { supabase } from '@/lib/supabase'
 import { useFetch } from '@/hooks/useFetch'
-import type { Contratacion } from '@/types'
+import type { Contratacion, User } from '@/types'
+import { profileToUser, type ProfileRow } from '@/lib/profile'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge, VerificationBadge } from '@/components/ui/Badge'
 import { cn } from '@/lib/cn'
-import { Button } from '@/components/ui/Button'
-import { CheckCircle2, XCircle, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 
 type Tab = 'verificaciones' | 'disputas' | 'reportes'
 
@@ -22,14 +21,28 @@ export function Admin() {
   }, [])
   const disputas = disputasData ?? []
 
+  const { data: pendientesData } = useFetch(async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .or(
+        'verif_rut.eq.pendiente,verif_cedula.eq.pendiente,verif_antecedentes.eq.pendiente,verif_certificaciones.eq.pendiente',
+      )
+      .limit(50)
+    return (data ?? []).map((p) => profileToUser(p as ProfileRow)) as User[]
+  }, [])
+  const pendientes = pendientesData ?? []
+
   return (
     <div className="container-page py-10">
       <div className="flex items-center gap-3 mb-4">
         <Shield className="h-6 w-6 text-ember" />
-        <p className="font-mono text-xs uppercase text-ember">Admin · placeholder</p>
+        <p className="font-mono text-xs uppercase text-ember">Admin · interno</p>
       </div>
       <h1 className="font-display text-4xl font-semibold">Panel interno</h1>
-      <p className="text-ink-500 mt-1">Vista de demo. Solo lectura, sin lógica real.</p>
+      <p className="text-ink-500 mt-1">
+        Revisión de verificaciones, disputas y publicaciones reportadas.
+      </p>
 
       <nav className="mt-8 flex gap-1 border-b border-navy/10">
         {(
@@ -53,21 +66,18 @@ export function Admin() {
 
       <div className="mt-6">
         {tab === 'verificaciones' && (
-          <ul className="divide-y divide-navy/10 rounded-2xl border border-navy/10 bg-paper">
-            {users
-              .filter(
-                (u) =>
-                  u.verificacion.rut === 'pendiente' ||
-                  u.verificacion.cedula === 'pendiente' ||
-                  u.verificacion.antecedentes === 'pendiente' ||
-                  u.verificacion.certificaciones === 'pendiente',
-              )
-              .map((u) => (
+          pendientes.length === 0 ? (
+            <p className="text-sm text-ink-400 italic">No hay usuarios pendientes de verificación.</p>
+          ) : (
+            <ul className="divide-y divide-navy/10 rounded-2xl border border-navy/10 bg-paper">
+              {pendientes.map((u) => (
                 <li key={u.id} className="flex items-center gap-4 p-4">
                   <Avatar src={u.fotoPerfil} name={u.nombre} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{u.nombre}</p>
-                    <p className="text-xs text-ink-400">{u.tipo} · {u.comuna}</p>
+                    <p className="text-xs text-ink-400">
+                      {u.tipo} · {u.comuna} · {u.email}
+                    </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <VerificationBadge estado={u.verificacion.rut} label="RUT" />
                       <VerificationBadge estado={u.verificacion.cedula} label="Cédula" />
@@ -75,13 +85,13 @@ export function Admin() {
                       <VerificationBadge estado={u.verificacion.certificaciones} label="Cert." />
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="primary" size="sm"><CheckCircle2 className="h-4 w-4" /> Aprobar</Button>
-                    <Button variant="outline" size="sm"><XCircle className="h-4 w-4" /> Rechazar</Button>
-                  </div>
+                  <p className="text-xs text-ink-400 italic max-w-[200px] text-right">
+                    Revisar docs en bucket <code>documents/{u.id}</code> y actualizar estado en la BD.
+                  </p>
                 </li>
               ))}
-          </ul>
+            </ul>
+          )
         )}
         {tab === 'disputas' && (
           disputas.length === 0 ? (
@@ -92,14 +102,13 @@ export function Admin() {
                 <li key={c.id} className="flex items-center gap-4 p-4">
                   <Badge tone="rust">Disputa</Badge>
                   <p className="text-sm">Contratación {c.id}</p>
-                  <Button variant="primary" size="sm">Intervenir</Button>
                 </li>
               ))}
             </ul>
           )
         )}
         {tab === 'reportes' && (
-          <p className="text-sm text-ink-400 italic">Sin publicaciones reportadas en el MVP.</p>
+          <p className="text-sm text-ink-400 italic">Sin publicaciones reportadas.</p>
         )}
       </div>
     </div>

@@ -2,17 +2,16 @@ import { useState, useRef } from 'react'
 import { useAuth } from '@/stores/useAuth'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { VerificationBadge } from '@/components/ui/Badge'
 import { regiones } from '@/mocks/regiones'
-import { Upload, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react'
+import { Upload, CheckCircle2, Loader2 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { updateProfile } from '@/lib/profile'
 import { uploadFile } from '@/lib/storage'
+import { VerificacionesCard } from '@/components/feature/VerificacionesCard'
 
 export function PanelPerfil() {
   const user = useAuth((s) => s.user())!
   const refresh = useAuth((s) => s.refresh)
-  const upsert = useAuth((s) => s.upsertVerificaciones)
   const [form, setForm] = useState({ ...user })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -198,70 +197,9 @@ export function PanelPerfil() {
           </div>
         </div>
 
-        <div className="ticket p-6 md:p-8 space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-moss" />
-            <h2 className="font-display text-2xl font-semibold">Verificaciones</h2>
-          </div>
-          <p className="text-sm text-ink-500">
-            La validación real de documentos la hace nuestro equipo cuando subas tu cédula y
-            certificaciones. Mientras tanto, puedes marcarlas como validadas en modo demo para
-            probar el flujo.
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <VerifCard
-              label="RUT"
-              estado={user.verificacion.rut}
-              onValidar={() => upsert({ rut: 'validada' })}
-            />
-            <VerifCard
-              label="Cédula"
-              estado={user.verificacion.cedula}
-              onValidar={() => upsert({ cedula: 'validada' })}
-            />
-            <VerifCard
-              label="Antecedentes"
-              estado={user.verificacion.antecedentes}
-              onValidar={() => upsert({ antecedentes: 'validada' })}
-            />
-            <VerifCard
-              label="Certificaciones"
-              estado={user.verificacion.certificaciones}
-              onValidar={() => upsert({ certificaciones: 'validada' })}
-            />
-          </div>
-        </div>
+        <VerificacionesCard />
       </form>
     </div>
   )
 }
 
-function VerifCard({
-  label,
-  estado,
-  onValidar,
-}: {
-  label: string
-  estado: import('@/types').EstadoVerificacion
-  onValidar: () => void
-}) {
-  return (
-    <div className="rounded-2xl border-2 border-dashed border-navy/20 p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="font-display text-lg font-semibold">{label}</p>
-        <VerificationBadge estado={estado} label={label} />
-      </div>
-      {estado !== 'validada' && estado !== 'no_aplica' && (
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 self-start text-sm font-semibold text-ember hover:underline"
-          onClick={onValidar}
-        >
-          <Upload className="h-3 w-3" />
-          {estado === 'pendiente' ? 'Marcar como validada (demo)' : 'Reintentar'}
-        </button>
-      )}
-    </div>
-  )
-}

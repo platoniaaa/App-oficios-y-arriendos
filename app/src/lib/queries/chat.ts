@@ -157,13 +157,17 @@ export async function marcarLeidos(conversacionId: string, userId: string) {
     .neq('emisor_id', userId)
 }
 
+function uniqSuffix() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 /** Realtime: suscribe a nuevos mensajes de una conversación. */
 export function subscribeToMensajes(
   conversacionId: string,
   onMensaje: (m: MensajeChat) => void,
 ) {
   const channel = supabase
-    .channel(`chat:${conversacionId}`)
+    .channel(`chat:${conversacionId}:${uniqSuffix()}`)
     .on(
       'postgres_changes',
       {
@@ -185,7 +189,7 @@ export function subscribeToMensajes(
 /** Realtime: suscribe a cambios en cualquier conversación del usuario. */
 export function subscribeToConversaciones(userId: string, onChange: () => void) {
   const channel = supabase
-    .channel(`conv:${userId}`)
+    .channel(`conv:${userId}:${uniqSuffix()}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'conversaciones' },

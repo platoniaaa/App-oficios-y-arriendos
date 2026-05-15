@@ -58,8 +58,11 @@ export async function marcarTodasLeidas(usuarioId: string) {
 }
 
 export function subscribeToNotificaciones(usuarioId: string, onChange: () => void) {
+  // Sufijo único por suscripción para que React Strict Mode / navegación
+  // no choquen con un channel ya suscrito con el mismo nombre.
+  const uniq = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const channel = supabase
-    .channel(`notif:${usuarioId}`)
+    .channel(`notif:${usuarioId}:${uniq}`)
     .on(
       'postgres_changes',
       {

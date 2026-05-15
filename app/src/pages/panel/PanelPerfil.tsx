@@ -64,9 +64,11 @@ export function PanelPerfil() {
       await updateProfile(user.id, { foto_perfil: url })
       await refresh()
     } catch (e) {
+      console.error('[onFotoChange]', e)
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto.')
     } finally {
       setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
@@ -79,14 +81,14 @@ export function PanelPerfil() {
 
       <form onSubmit={save} className="space-y-8">
         <div className="ticket p-6 md:p-8 space-y-6">
-          <div className="flex items-center gap-5">
+          <div className="flex items-start gap-5">
             <Avatar src={form.fotoPerfil} name={form.nombre} size="xl" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="font-display text-lg font-semibold">Foto de perfil</p>
-              <p className="text-sm text-ink-400">JPG/PNG hasta 5 MB. Una foto clara genera confianza.</p>
+              <p className="text-sm text-ink-400">JPG, PNG, WebP o GIF — hasta 5 MB.</p>
               <button
                 type="button"
-                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ember hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ember hover:underline disabled:opacity-50"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
               >
@@ -100,10 +102,15 @@ export function PanelPerfil() {
                   </>
                 )}
               </button>
+              {error && (
+                <div className="mt-2 rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-xs text-rust">
+                  <strong>Error al subir:</strong> {error}
+                </div>
+              )}
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && onFotoChange(e.target.files[0])}
               />

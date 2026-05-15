@@ -121,8 +121,9 @@ export function PublicarServicio() {
               label="Años de experiencia"
               type="number"
               min={0}
-              value={form.experiencia}
-              onChange={(e) => setForm({ ...form, experiencia: Number(e.target.value) })}
+              placeholder="0"
+              value={form.experiencia === 0 ? '' : form.experiencia}
+              onChange={(e) => setForm({ ...form, experiencia: e.target.value === '' ? 0 : Number(e.target.value) })}
             />
           </div>
         )}
@@ -145,10 +146,11 @@ export function PublicarServicio() {
               <Input
                 label="Monto (CLP)"
                 type="number"
-                min={1000}
+                min={0}
                 step={1000}
-                value={form.monto}
-                onChange={(e) => setForm({ ...form, monto: Number(e.target.value) })}
+                placeholder="Ej: 15000"
+                value={form.monto === 0 ? '' : form.monto}
+                onChange={(e) => setForm({ ...form, monto: e.target.value === '' ? 0 : Number(e.target.value) })}
               />
             )}
             <Select

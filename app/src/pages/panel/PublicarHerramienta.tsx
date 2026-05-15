@@ -143,13 +143,41 @@ export function PublicarHerramienta() {
         {step === 3 && (
           <div className="space-y-4">
             <h2 className="font-display text-2xl font-semibold">Tarifas</h2>
-            <p className="text-sm text-ink-500">Debes ingresar al menos una modalidad. Deja en 0 las que no aplican.</p>
+            <p className="text-sm text-ink-500">Debes ingresar al menos una modalidad. Deja vacías las que no aplican.</p>
             <div className="grid sm:grid-cols-3 gap-3">
-              <Input label="Por hora (CLP)" type="number" value={form.porHora} onChange={(e) => setForm({ ...form, porHora: Number(e.target.value) })} />
-              <Input label="Por día (CLP)" type="number" value={form.porDia} onChange={(e) => setForm({ ...form, porDia: Number(e.target.value) })} />
-              <Input label="Por semana (CLP)" type="number" value={form.porSemana} onChange={(e) => setForm({ ...form, porSemana: Number(e.target.value) })} />
+              <Input
+                label="Por hora (CLP)"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={form.porHora === 0 ? '' : form.porHora}
+                onChange={(e) => setForm({ ...form, porHora: e.target.value === '' ? 0 : Number(e.target.value) })}
+              />
+              <Input
+                label="Por día (CLP)"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={form.porDia === 0 ? '' : form.porDia}
+                onChange={(e) => setForm({ ...form, porDia: e.target.value === '' ? 0 : Number(e.target.value) })}
+              />
+              <Input
+                label="Por semana (CLP)"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={form.porSemana === 0 ? '' : form.porSemana}
+                onChange={(e) => setForm({ ...form, porSemana: e.target.value === '' ? 0 : Number(e.target.value) })}
+              />
             </div>
-            <Input label="Depósito en garantía (CLP)" type="number" value={form.deposito} onChange={(e) => setForm({ ...form, deposito: Number(e.target.value) })} />
+            <Input
+              label="Depósito en garantía (CLP)"
+              type="number"
+              min={0}
+              placeholder="0"
+              value={form.deposito === 0 ? '' : form.deposito}
+              onChange={(e) => setForm({ ...form, deposito: e.target.value === '' ? 0 : Number(e.target.value) })}
+            />
           </div>
         )}
 

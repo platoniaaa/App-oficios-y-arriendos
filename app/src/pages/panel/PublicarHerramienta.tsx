@@ -3,7 +3,7 @@ import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { categoriasHerramientas } from '@/mocks/categorias'
-import { todasLasComunas } from '@/mocks/regiones'
+import { regiones } from '@/mocks/regiones'
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
@@ -31,6 +31,7 @@ export function PublicarHerramienta() {
     porDia: 15000,
     porSemana: 0,
     deposito: 50000,
+    region: user.region,
     comuna: user.comuna,
     retiro: 'ambos' as RetiroModalidad,
     delivery: true,
@@ -184,12 +185,33 @@ export function PublicarHerramienta() {
         {step === 4 && (
           <div className="space-y-4">
             <h2 className="font-display text-2xl font-semibold">Ubicación y retiro</h2>
-            <Select
-              label="Comuna"
-              value={form.comuna}
-              onChange={(e) => setForm({ ...form, comuna: e.target.value })}
-              options={todasLasComunas.map((c) => ({ value: c, label: c }))}
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select
+                label="Región"
+                value={form.region}
+                onChange={(e) => {
+                  const nuevaRegion = e.target.value
+                  const comunasDe = regiones.find((r) => r.nombre === nuevaRegion)?.comunas ?? []
+                  setForm({
+                    ...form,
+                    region: nuevaRegion,
+                    comuna: comunasDe.includes(form.comuna) ? form.comuna : comunasDe[0] ?? '',
+                  })
+                }}
+                options={regiones.map((r) => ({ value: r.nombre, label: r.nombre }))}
+              />
+              <Select
+                label="Comuna"
+                value={form.comuna}
+                onChange={(e) => setForm({ ...form, comuna: e.target.value })}
+                options={
+                  (regiones.find((r) => r.nombre === form.region)?.comunas ?? []).map((c) => ({
+                    value: c,
+                    label: c,
+                  }))
+                }
+              />
+            </div>
             <Select
               label="Modalidad de retiro"
               value={form.retiro}

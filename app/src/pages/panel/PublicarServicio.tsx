@@ -3,12 +3,12 @@ import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { oficios } from '@/mocks/categorias'
-import { todasLasComunas } from '@/mocks/regiones'
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
 import { crearServicio } from '@/lib/queries/servicios'
 import { UploadFotos } from '@/components/feature/UploadFotos'
+import { ComunasSelector } from '@/components/feature/ComunasSelector'
 
 const steps = ['Oficio', 'Descripción', 'Tarifa', 'Zonas', 'Galería', 'Confirmar']
 
@@ -167,22 +167,10 @@ export function PublicarServicio() {
         {step === 3 && (
           <div className="space-y-4">
             <h2 className="font-display text-2xl font-semibold">Zonas donde atiendes</h2>
-            <p className="label-base">Haz clic para agregar o quitar comunas.</p>
-            <div className="flex flex-wrap gap-2 max-h-80 overflow-y-auto">
-              {todasLasComunas.map((c) => {
-                const active = zonas.includes(c)
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setZonas(active ? zonas.filter((z) => z !== c) : [...zonas, c])}
-                    className={'chip ' + (active ? 'bg-navy text-cream border-navy' : '')}
-                  >
-                    {c}
-                  </button>
-                )
-              })}
-            </div>
+            <p className="text-sm text-ink-500">
+              Busca tu comuna o selecciona toda una región completa.
+            </p>
+            <ComunasSelector value={zonas} onChange={setZonas} sugerida={user.comuna} />
           </div>
         )}
 

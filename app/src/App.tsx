@@ -46,6 +46,7 @@ import { ArrendadorResenas } from '@/pages/panel/arrendador/Resenas'
 import { ArrendadorPerfil } from '@/pages/panel/arrendador/Perfil'
 import { ArrendadorConfiguracion } from '@/pages/panel/arrendador/Configuracion'
 import { useAuth } from '@/stores/useAuth'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const user = useAuth((s) => s.user())
@@ -56,6 +57,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 export function App() {
   useScrollToTop()
   return (
+    <ErrorBoundary>
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<Home />} />
@@ -142,5 +144,6 @@ export function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </ErrorBoundary>
   )
 }

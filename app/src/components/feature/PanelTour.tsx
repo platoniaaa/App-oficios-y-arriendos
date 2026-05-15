@@ -66,19 +66,27 @@ export function PanelTour({ userId }: { userId: string }) {
 
   // Activar solo si bienvenida completa y tour aún no hecho.
   useEffect(() => {
-    if (!isBienvenidaDone(userId)) return
-    if (isTourPanelDone(userId)) return
-    // Pequeño delay para que el layout termine de pintarse
-    const t = setTimeout(() => setActive(true), 350)
-    return () => clearTimeout(t)
+    try {
+      if (!isBienvenidaDone(userId)) return
+      if (isTourPanelDone(userId)) return
+      const t = setTimeout(() => setActive(true), 350)
+      return () => clearTimeout(t)
+    } catch (e) {
+      console.warn('[PanelTour] no se pudo activar el tour', e)
+    }
   }, [userId])
 
   // Recalcular rectángulo del target cuando cambia step / resize / scroll
   useLayoutEffect(() => {
     if (!active) return
     function update() {
-      const s = steps[step]
-      setRect(readRect(s.target))
+      try {
+        const s = steps[step]
+        if (!s) return
+        setRect(readRect(s.target))
+      } catch (e) {
+        console.warn('[PanelTour] readRect falló', e)
+      }
     }
     update()
     window.addEventListener('resize', update)
@@ -92,8 +100,14 @@ export function PanelTour({ userId }: { userId: string }) {
   // Scroll al target la primera vez que se muestra cada paso
   useEffect(() => {
     if (!active) return
-    const el = document.querySelector(steps[step].target) as HTMLElement | null
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    try {
+      const s = steps[step]
+      if (!s) return
+      const el = document.querySelector(s.target) as HTMLElement | null
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } catch (e) {
+      console.warn('[PanelTour] scrollIntoView falló', e)
+    }
   }, [active, step])
 
   if (!active) return null

@@ -17,14 +17,17 @@ interface State {
 }
 
 const store: State = {
-  push: (n) =>
-    void pushNotificacion({
+  push: (n) => {
+    pushNotificacion({
       usuario_id: n.usuarioId,
       tipo: n.tipo,
       titulo: n.titulo,
       texto: n.texto,
       link: n.link,
-    }),
+    }).catch((e) => {
+      console.error('[useNotificaciones.push] no se pudo enviar la notificación', e, n)
+    })
+  },
 }
 
 export function useNotificaciones<T = State>(selector?: (s: State) => T): T {

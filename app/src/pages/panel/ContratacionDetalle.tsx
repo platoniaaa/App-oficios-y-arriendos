@@ -66,8 +66,13 @@ export function ContratacionDetalle() {
 
   async function updateEstado(nuevo: EstadoContratacion) {
     if (!c) return
-    await actualizarEstadoContratacion(c.id, nuevo)
-    refetch()
+    try {
+      await actualizarEstadoContratacion(c.id, nuevo)
+      refetch()
+    } catch (e) {
+      console.error('[updateEstado]', e)
+      alert(e instanceof Error ? e.message : 'No se pudo actualizar el estado.')
+    }
   }
   async function addResena(input: {
     contratacionId: string
@@ -87,8 +92,8 @@ export function ContratacionDetalle() {
     })
   }
 
-  function advanceTo(next: EstadoContratacion) {
-    void updateEstado(next)
+  async function advanceTo(next: EstadoContratacion) {
+    await updateEstado(next)
   }
 
   const acciones: { label: string; next: EstadoContratacion; variant?: 'ember' | 'primary' | 'outline' | 'ghost' }[] = []
@@ -258,23 +263,29 @@ export function ContratacionDetalle() {
         <DejarResenaModal
           open={resenaOpen}
           onClose={() => setResenaOpen(false)}
-          onSubmit={(estrellas, texto, recomienda) => {
-            addResena({
-              contratacionId: c.id,
-              autorId: user.id,
-              destinoId: contraparte?.id ?? c.ofertanteId,
-              estrellas,
-              comentario: texto,
-              recomienda,
-            })
-            notifPush({
-              usuarioId: contraparte?.id ?? c.ofertanteId,
-              tipo: 'resena_recibida',
-              titulo: 'Nueva reseña',
-              texto: 'Te dejaron una reseña por la contratación finalizada.',
-              link: `/perfil/${contraparte?.id ?? c.ofertanteId}`,
-            })
-            setResenaOpen(false)
+          onSubmit={async (estrellas, texto, recomienda) => {
+            try {
+              await addResena({
+                contratacionId: c.id,
+                autorId: user.id,
+                destinoId: contraparte?.id ?? c.ofertanteId,
+                estrellas,
+                comentario: texto,
+                recomienda,
+              })
+              notifPush({
+                usuarioId: contraparte?.id ?? c.ofertanteId,
+                tipo: 'resena_recibida',
+                titulo: 'Nueva reseña',
+                texto: 'Te dejaron una reseña por la contratación finalizada.',
+                link: `/perfil/${contraparte?.id ?? c.ofertanteId}`,
+              })
+              setResenaOpen(false)
+              refetch()
+            } catch (e) {
+              console.error('[addResena]', e)
+              throw e
+            }
           }}
         />
       )}
@@ -298,11 +309,26 @@ function DejarResenaModal({
 }: {
   open: boolean
   onClose: () => void
-  onSubmit: (estrellas: number, texto: string, recomienda: boolean) => void
+  onSubmit: (estrellas: number, texto: string, recomienda: boolean) => Promise<void>
 }) {
   const [estrellas, setEstrellas] = useState(5)
   const [texto, setTexto] = useState('')
   const [recomienda, setRecomienda] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit() {
+    if (estrellas === 0 || texto.length < 10 || submitting) return
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onSubmit(estrellas, texto, recomienda)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar la reseña.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <Modal open={open} onClose={onClose} title="Dejar reseña" size="md">
@@ -319,14 +345,30 @@ function DejarResenaModal({
           hint={`${texto.length}/500`}
         />
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="h-4 w-4 accent-navy" checked={recomienda} onChange={(e) => setRecomienda(e.target.checked)} />
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-navy"
+            checked={recomienda}
+            onChange={(e) => setRecomienda(e.target.checked)}
+          />
           Recomiendo a este profesional
         </label>
+        {error && (
+          <div className="rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+            {error}
+          </div>
+        )}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="md" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>
             Cancelar
           </Button>
-          <Button variant="ember" size="md" disabled={texto.length < 10} onClick={() => onSubmit(estrellas, texto, recomienda)}>
+          <Button
+            variant="ember"
+            size="md"
+            disabled={texto.length < 10 || estrellas === 0 || submitting}
+            loading={submitting}
+            onClick={handleSubmit}
+          >
             Enviar reseña
           </Button>
         </div>

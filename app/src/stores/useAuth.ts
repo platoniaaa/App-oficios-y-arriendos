@@ -3,6 +3,15 @@ import type { User } from '@/types'
 import { supabase } from '@/lib/supabase'
 import { fetchProfile, updateProfile, type ProfileRow } from '@/lib/profile'
 
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} excedió ${ms / 1000}s`)), ms),
+    ),
+  ])
+}
+
 type Credenciales = { email: string; password: string }
 
 interface RegistroPayload {
@@ -37,21 +46,35 @@ export const useAuth = create<AuthState>()((set, get) => ({
   user: () => get().currentUser,
 
   init: async () => {
-    const { data } = await supabase.auth.getSession()
-    const session = data.session
-    if (session?.user) {
-      const u = await fetchProfile(session.user.id)
-      set({ userId: session.user.id, currentUser: u, hydrated: true })
-    } else {
-      set({ userId: null, currentUser: null, hydrated: true })
+    try {
+      const { data } = await withTimeout(supabase.auth.getSession(), 8_000, 'getSession')
+      const session = data.session
+      if (session?.user) {
+        let u: User | null = null
+        try {
+          u = await withTimeout(fetchProfile(session.user.id), 8_000, 'fetchProfile')
+        } catch (e) {
+          console.error('[init] fetchProfile falló', e)
+        }
+        set({ userId: session.user.id, currentUser: u, hydrated: true })
+      } else {
+        set({ userId: null, currentUser: null, hydrated: true })
+      }
+    } catch (e) {
+      console.error('[init] getSession falló', e)
+      set({ hydrated: true })
     }
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-      if (sess?.user) {
-        const u = await fetchProfile(sess.user.id)
-        set({ userId: sess.user.id, currentUser: u })
-      } else {
-        set({ userId: null, currentUser: null })
+      try {
+        if (sess?.user) {
+          const u = await withTimeout(fetchProfile(sess.user.id), 8_000, 'fetchProfile')
+          set({ userId: sess.user.id, currentUser: u })
+        } else {
+          set({ userId: null, currentUser: null })
+        }
+      } catch (e) {
+        console.error('[onAuthStateChange]', e)
       }
     })
     return () => sub.subscription.unsubscribe()
@@ -60,14 +83,18 @@ export const useAuth = create<AuthState>()((set, get) => ({
   login: async ({ email, password }) => {
     set({ loading: true })
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        15_000,
+        'signInWithPassword',
+      )
       if (error || !data.user) {
         set({ loading: false })
         return { user: null, error: traduceError(error?.message) }
       }
       let u: User | null = null
       try {
-        u = await fetchProfile(data.user.id)
+        u = await withTimeout(fetchProfile(data.user.id), 10_000, 'fetchProfile')
       } catch (e) {
         console.error('[login] fetchProfile falló', e)
       }
@@ -88,15 +115,8 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
   register: async ({ email, password, perfil }) => {
     set({ loading: true })
-    const timeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
-      Promise.race([
-        p,
-        new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`${label} excedió ${ms / 1000}s`)), ms),
-        ),
-      ])
     try {
-      const { data, error } = await timeout(
+      const { data, error } = await withTimeout(
         supabase.auth.signUp({
           email,
           password,
@@ -117,7 +137,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       // El trigger en BD ya creó el row en profiles con email+nombre. Actualizamos el resto.
       if (Object.keys(perfil).length > 1) {
         try {
-          await timeout(
+          await withTimeout(
             updateProfile(data.user.id, { ...perfil, email }),
             15_000,
             'updateProfile',
@@ -135,7 +155,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
       let u: User | null = null
       try {
-        u = await timeout(fetchProfile(data.user.id), 10_000, 'fetchProfile')
+        u = await withTimeout(fetchProfile(data.user.id), 10_000, 'fetchProfile')
       } catch (e) {
         console.error('[register] fetchProfile falló', e)
       }

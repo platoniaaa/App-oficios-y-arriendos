@@ -46,6 +46,16 @@ export function PublicarHerramienta() {
       setError('Necesitas título y categoría.')
       return
     }
+    if (form.porHora === 0 && form.porDia === 0 && form.porSemana === 0) {
+      setError('Debes ingresar al menos una tarifa (hora, día o semana).')
+      setStep(3)
+      return
+    }
+    if (!form.comuna || !form.region) {
+      setError('Debes seleccionar región y comuna.')
+      setStep(4)
+      return
+    }
     setSubmitting(true)
     try {
       await crearHerramienta({

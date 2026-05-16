@@ -4,6 +4,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { LayoutDashboard, Briefcase, FileText, MessageCircle, Bell, Star, UserCog } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useNotifCount } from '@/hooks/useNotifCount'
+import { useChatUnreadCount } from '@/hooks/useChatUnreadCount'
 import { RolSwitcher } from '@/components/feature/RolSwitcher'
 import { PanelTour } from '@/components/feature/PanelTour'
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
@@ -21,6 +22,7 @@ const links = [
 export function PanelLayout() {
   const user = useAuth((s) => s.user())
   const noLeidas = useNotifCount(user?.id)
+  const chatsNoLeidos = useChatUnreadCount(user?.id)
   if (!user) return <Navigate to="/login" replace />
 
   return (
@@ -57,6 +59,11 @@ export function PanelLayout() {
                 {l.to === '/panel/notificaciones' && noLeidas > 0 && (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ember px-1.5 text-[10px] font-bold text-cream">
                     {noLeidas}
+                  </span>
+                )}
+                {l.to === '/panel/chats' && chatsNoLeidos > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ember px-1.5 text-[10px] font-bold text-cream">
+                    {chatsNoLeidos}
                   </span>
                 )}
               </NavLink>

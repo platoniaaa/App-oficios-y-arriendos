@@ -17,6 +17,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar'
 import { useAuth } from '@/stores/useAuth'
 import { useNotifCount } from '@/hooks/useNotifCount'
+import { useChatUnreadCount } from '@/hooks/useChatUnreadCount'
 import { UbicacionSelector } from '@/components/feature/UbicacionSelector'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/cn'
@@ -31,6 +32,7 @@ export function Header() {
   const user = useAuth((s) => s.user())
   const logout = useAuth((s) => s.logout)
   const noLeidas = useNotifCount(user?.id)
+  const chatsNoLeidos = useChatUnreadCount(user?.id)
   const nav = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [publicarOpen, setPublicarOpen] = useState(false)
@@ -238,9 +240,14 @@ export function Header() {
               <Link
                 to="/panel/chats"
                 aria-label="Chats"
-                className="hidden items-center justify-center rounded-full p-1 text-navy hover:bg-navy/5 md:inline-flex"
+                className="relative hidden items-center justify-center rounded-full p-1 text-navy hover:bg-navy/5 md:inline-flex"
               >
                 <MessageCircle className="h-4 w-4" />
+                {chatsNoLeidos > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-ember px-1 text-[9px] font-bold text-cream">
+                    {chatsNoLeidos}
+                  </span>
+                )}
               </Link>
               <Link
                 to="/panel/notificaciones"

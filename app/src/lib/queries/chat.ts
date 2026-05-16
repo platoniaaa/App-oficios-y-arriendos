@@ -126,14 +126,26 @@ export async function enviarMensaje(
     .select()
     .single()
   if (error) throw error
-  // Actualiza el snapshot en la conversación
-  await supabase
+
+  // Lee la conv para identificar al receptor e incrementar su contador
+  const { data: convRow } = await supabase
     .from('conversaciones')
-    .update({
-      ultimo_mensaje: texto.slice(0, 200),
-      ultimo_mensaje_fecha: data.fecha,
-    })
+    .select('participante_a, participante_b, no_leidos_a, no_leidos_b')
     .eq('id', conversacionId)
+    .maybeSingle()
+
+  const updates: Record<string, unknown> = {
+    ultimo_mensaje: texto.slice(0, 200),
+    ultimo_mensaje_fecha: data.fecha,
+  }
+  if (convRow) {
+    if (convRow.participante_a === emisorId) {
+      updates.no_leidos_b = (convRow.no_leidos_b ?? 0) + 1
+    } else if (convRow.participante_b === emisorId) {
+      updates.no_leidos_a = (convRow.no_leidos_a ?? 0) + 1
+    }
+  }
+  await supabase.from('conversaciones').update(updates).eq('id', conversacionId)
   return rowToMensaje(data as MensajeRow)
 }
 

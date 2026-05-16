@@ -88,12 +88,23 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
   register: async ({ email, password, perfil }) => {
     set({ loading: true })
+    const timeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} excedió ${ms / 1000}s`)), ms),
+        ),
+      ])
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { nombre: perfil.nombre } },
-      })
+      const { data, error } = await timeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { nombre: perfil.nombre } },
+        }),
+        20_000,
+        'signUp',
+      )
       if (error) {
         set({ loading: false })
         return { user: null, error: traduceError(error.message) }
@@ -106,7 +117,11 @@ export const useAuth = create<AuthState>()((set, get) => ({
       // El trigger en BD ya creó el row en profiles con email+nombre. Actualizamos el resto.
       if (Object.keys(perfil).length > 1) {
         try {
-          await updateProfile(data.user.id, { ...perfil, email })
+          await timeout(
+            updateProfile(data.user.id, { ...perfil, email }),
+            15_000,
+            'updateProfile',
+          )
         } catch (e) {
           console.warn('[register] profile patch error', e)
         }
@@ -120,7 +135,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
       let u: User | null = null
       try {
-        u = await fetchProfile(data.user.id)
+        u = await timeout(fetchProfile(data.user.id), 10_000, 'fetchProfile')
       } catch (e) {
         console.error('[register] fetchProfile falló', e)
       }

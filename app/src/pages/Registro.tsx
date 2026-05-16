@@ -105,22 +105,28 @@ export function Registro() {
     }
 
     setSubmitting(true)
-    const { user, error } = await register({
-      email: form.email,
-      password: form.password,
-      perfil,
-    })
-    setSubmitting(false)
+    try {
+      const { user, error } = await register({
+        email: form.email,
+        password: form.password,
+        perfil,
+      })
 
-    if (error === 'CONFIRMAR_EMAIL') {
-      setNeedsConfirm(true)
-      return
+      if (error === 'CONFIRMAR_EMAIL') {
+        setNeedsConfirm(true)
+        return
+      }
+      if (error) {
+        setError(error)
+        return
+      }
+      if (user) nav('/bienvenida')
+    } catch (e) {
+      console.error('[finalizar registro]', e)
+      setError(e instanceof Error ? e.message : 'No se pudo crear la cuenta.')
+    } finally {
+      setSubmitting(false)
     }
-    if (error) {
-      setError(error)
-      return
-    }
-    if (user) nav('/bienvenida')
   }
 
   if (needsConfirm) {

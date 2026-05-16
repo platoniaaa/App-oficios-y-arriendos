@@ -212,10 +212,12 @@ function SolicitarArriendoModal({
   onClose: () => void
   precioDia: number
   deposito: number
-  onConfirm: (dias: number, desde: string) => void
+  onConfirm: (dias: number, desde: string) => Promise<void> | void
 }) {
-  const [desde, setDesde] = useState(new Date().toISOString().slice(0, 10))
+  const [desde, setDesde] = useState(new Date(Date.now() + 86400000).toISOString().slice(0, 10))
   const [dias, setDias] = useState(2)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const subtotal = precioDia * dias
   const comision = Math.round(subtotal * fees.comisionPlataforma)
   const total = subtotal + comision + deposito
@@ -224,12 +226,43 @@ function SolicitarArriendoModal({
     [desde, dias],
   )
 
+  function validar(): string | null {
+    if (!desde) return 'Selecciona la fecha de retiro.'
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    const inicio = new Date(desde + 'T00:00:00')
+    if (inicio < hoy) return 'La fecha de retiro debe ser hoy o más adelante.'
+    if (dias < 1) return 'El arriendo debe ser de al menos 1 día.'
+    if (dias > 365) return 'El arriendo no puede superar 365 días.'
+    return null
+  }
+
+  const errorValidacion = validar()
+
+  async function handleConfirm() {
+    const err = validar()
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onConfirm(dias, desde)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo crear la reserva.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Reservar arriendo" size="md">
       <div className="grid grid-cols-2 gap-3">
         <Input
           label="Desde"
           type="date"
+          min={new Date().toISOString().slice(0, 10)}
           value={desde}
           onChange={(e) => setDesde(e.target.value)}
         />
@@ -237,6 +270,7 @@ function SolicitarArriendoModal({
           label="Días"
           type="number"
           min={1}
+          max={365}
           value={dias}
           onChange={(e) => setDias(Math.max(1, Number(e.target.value)))}
         />
@@ -251,11 +285,23 @@ function SolicitarArriendoModal({
         <Row label="Total a pagar al escrow" value={formatCLP(total)} strong />
       </div>
 
+      {error && (
+        <div className="mt-3 rounded-lg border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-rust">
+          {error}
+        </div>
+      )}
+
       <div className="mt-5 flex justify-end gap-2">
-        <Button variant="ghost" size="md" onClick={onClose}>
+        <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>
           Cancelar
         </Button>
-        <Button variant="ember" size="md" onClick={() => onConfirm(dias, desde)}>
+        <Button
+          variant="ember"
+          size="md"
+          onClick={handleConfirm}
+          disabled={!!errorValidacion || submitting}
+          loading={submitting}
+        >
           Confirmar reserva
         </Button>
       </div>

@@ -3,7 +3,7 @@ import { useAuth } from '@/stores/useAuth'
 import { StarRating } from '@/components/ui/StarRating'
 import { PriceTag } from '@/components/ui/PriceTag'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
 import { listServiciosDeUsuario } from '@/lib/queries/servicios'
 import { listHerramientasDeUsuario } from '@/lib/queries/herramientas'
 import { useFetch } from '@/hooks/useFetch'
@@ -65,6 +65,14 @@ export function MisPublicaciones() {
                     )}
                   </div>
                 </Link>
+                <div className="border-t border-navy/5 px-4 py-2 flex justify-end">
+                  <Link
+                    to={`/panel/publicar/servicio/${s.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-ember hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -101,6 +109,14 @@ export function MisPublicaciones() {
                     <PriceTag value={h.tarifa.porDia} unit="día" size="sm" />
                   </div>
                 </Link>
+                <div className="border-t border-navy/5 px-4 py-2 flex justify-end">
+                  <Link
+                    to={`/panel/publicar/herramienta/${h.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-ember hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

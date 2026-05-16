@@ -96,7 +96,9 @@ export function App() {
           <Route path="perfil" element={<PanelPerfil />} />
           <Route path="mis-publicaciones" element={<MisPublicaciones />} />
           <Route path="publicar/servicio" element={<PublicarServicio />} />
+          <Route path="publicar/servicio/:id" element={<PublicarServicio />} />
           <Route path="publicar/herramienta" element={<PublicarHerramienta />} />
+          <Route path="publicar/herramienta/:id" element={<PublicarHerramienta />} />
           <Route path="contrataciones" element={<Contrataciones />} />
           <Route path="contratacion/:id" element={<ContratacionDetalle />} />
           <Route path="chats" element={<Chats />} />

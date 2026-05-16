@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { categoriasHerramientas } from '@/mocks/categorias'
 import { regiones } from '@/mocks/regiones'
-import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Plus, Save } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { crearHerramienta } from '@/lib/queries/herramientas'
+import {
+  crearHerramienta,
+  actualizarHerramienta,
+  getHerramienta,
+} from '@/lib/queries/herramientas'
 import { UploadFotos } from '@/components/feature/UploadFotos'
 import type { RetiroModalidad, EstadoHerramienta } from '@/types'
 
@@ -15,10 +19,13 @@ const steps = ['Categoría', 'Info', 'Fotos', 'Tarifas', 'Ubicación', 'Confirma
 
 export function PublicarHerramienta() {
   const user = useAuth((s) => s.user())!
+  const { id: editId } = useParams<{ id: string }>()
+  const esEdicion = Boolean(editId)
   const [step, setStep] = useState(0)
   const [fotos, setFotos] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadingEdit, setLoadingEdit] = useState(esEdicion)
   const [form, setForm] = useState({
     categoria: '',
     subcategoria: '',
@@ -40,6 +47,55 @@ export function PublicarHerramienta() {
   })
   const nav = useNavigate()
 
+  useEffect(() => {
+    if (!editId) return
+    let cancel = false
+    async function load() {
+      try {
+        const h = await getHerramienta(editId!)
+        if (cancel || !h) return
+        if (h.propietarioId !== user.id) {
+          setError('Esta publicación no es tuya.')
+          setLoadingEdit(false)
+          return
+        }
+        const comunaH = h.comunaUbicacion ?? user.comuna
+        const regionH =
+          regiones.find((r) => r.comunas.includes(comunaH))?.nombre ?? user.region
+        const disp = h.disponibilidad?.[0]
+        setForm({
+          categoria: h.categoria,
+          subcategoria: h.subcategoria ?? '',
+          titulo: h.titulo,
+          marca: h.marca ?? '',
+          modelo: h.modelo ?? '',
+          estado: h.estado,
+          descripcion: h.descripcion ?? '',
+          porHora: h.tarifa.porHora ?? 0,
+          porDia: h.tarifa.porDia ?? 0,
+          porSemana: h.tarifa.porSemana ?? 0,
+          deposito: h.depositoGarantia ?? 0,
+          region: regionH,
+          comuna: comunaH,
+          retiro: h.retiro,
+          delivery: h.requiereEntrega ?? false,
+          fechaDesde: disp?.desde ?? new Date().toISOString().slice(0, 10),
+          fechaHasta:
+            disp?.hasta ?? new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10),
+        })
+        setFotos(h.fotos ?? [])
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'No se pudo cargar la publicación.')
+      } finally {
+        setLoadingEdit(false)
+      }
+    }
+    load()
+    return () => {
+      cancel = true
+    }
+  }, [editId, user.id, user.region, user.comuna])
+
   async function publicar() {
     setError(null)
     if (!form.titulo || !form.categoria) {
@@ -58,8 +114,7 @@ export function PublicarHerramienta() {
     }
     setSubmitting(true)
     try {
-      await crearHerramienta({
-        propietario_id: user.id,
+      const payload = {
         titulo: form.titulo,
         categoria: form.categoria,
         subcategoria: form.subcategoria || null,
@@ -76,9 +131,14 @@ export function PublicarHerramienta() {
         comuna_ubicacion: form.comuna,
         retiro: form.retiro,
         disponibilidad: [{ desde: form.fechaDesde, hasta: form.fechaHasta }],
-        estado_operacional: 'disponible',
-        estado: 'activo',
-      })
+        estado_operacional: 'disponible' as const,
+        estado: 'activo' as const,
+      }
+      if (esEdicion && editId) {
+        await actualizarHerramienta(editId, payload)
+      } else {
+        await crearHerramienta({ propietario_id: user.id, ...payload })
+      }
       nav('/panel/mis-publicaciones')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo publicar.')
@@ -87,13 +147,21 @@ export function PublicarHerramienta() {
     }
   }
 
+  if (loadingEdit) {
+    return <div className="text-center text-ink-400 py-12">Cargando publicación…</div>
+  }
+
   const cat = categoriasHerramientas.find((c) => c.nombre === form.categoria)
 
   return (
     <div className="space-y-8">
       <header>
-        <p className="font-mono text-xs uppercase text-ember">Publicar herramienta</p>
-        <h1 className="font-display text-4xl font-semibold">Pon tu equipo a trabajar</h1>
+        <p className="font-mono text-xs uppercase text-ember">
+          {esEdicion ? 'Editar herramienta' : 'Publicar herramienta'}
+        </p>
+        <h1 className="font-display text-4xl font-semibold">
+          {esEdicion ? 'Actualiza tu publicación' : 'Pon tu equipo a trabajar'}
+        </h1>
       </header>
       <Stepper steps={steps} current={step} />
       <div className="ticket p-6 md:p-8 animate-fade-up">
@@ -284,7 +352,8 @@ export function PublicarHerramienta() {
             </Button>
           ) : (
             <Button variant="ember" size="md" onClick={publicar} loading={submitting} disabled={submitting}>
-              <Plus className="h-4 w-4" /> Publicar
+              {esEdicion ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {esEdicion ? 'Guardar cambios' : 'Publicar'}
             </Button>
           )}
         </div>

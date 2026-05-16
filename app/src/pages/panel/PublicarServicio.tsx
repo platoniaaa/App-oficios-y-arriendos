@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Stepper } from '@/components/ui/Stepper'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { oficios } from '@/mocks/categorias'
-import { ArrowLeft, ArrowRight, Plus } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Plus, Save } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/stores/useAuth'
-import { crearServicio } from '@/lib/queries/servicios'
+import { crearServicio, actualizarServicio, getServicio } from '@/lib/queries/servicios'
 import { UploadFotos } from '@/components/feature/UploadFotos'
 import { ComunasSelector } from '@/components/feature/ComunasSelector'
 
@@ -14,11 +14,14 @@ const steps = ['Oficio', 'Descripción', 'Tarifa', 'Zonas', 'Galería', 'Confirm
 
 export function PublicarServicio() {
   const user = useAuth((s) => s.user())!
+  const { id: editId } = useParams<{ id: string }>()
+  const esEdicion = Boolean(editId)
   const [step, setStep] = useState(0)
   const [zonas, setZonas] = useState<string[]>([])
   const [galeria, setGaleria] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadingEdit, setLoadingEdit] = useState(esEdicion)
   const [form, setForm] = useState({
     oficio: '',
     categorias: [] as string[],
@@ -30,6 +33,41 @@ export function PublicarServicio() {
   })
   const nav = useNavigate()
 
+  useEffect(() => {
+    if (!editId) return
+    let cancel = false
+    async function load() {
+      try {
+        const s = await getServicio(editId!)
+        if (cancel || !s) return
+        if (s.trabajadorId !== user.id) {
+          setError('Esta publicación no es tuya.')
+          setLoadingEdit(false)
+          return
+        }
+        setForm({
+          oficio: s.oficio,
+          categorias: s.categorias ?? [],
+          descripcion: s.descripcion ?? '',
+          experiencia: s.experienciaAnios ?? 0,
+          tipoTarifa: s.tarifaReferencia.tipo,
+          monto: s.tarifaReferencia.monto ?? 0,
+          disponibilidad: s.disponibilidad,
+        })
+        setZonas(s.zonasCobertura ?? [])
+        setGaleria(s.galeriaTrabajos ?? [])
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'No se pudo cargar la publicación.')
+      } finally {
+        setLoadingEdit(false)
+      }
+    }
+    load()
+    return () => {
+      cancel = true
+    }
+  }, [editId, user.id])
+
   async function publicar() {
     setError(null)
     if (!form.oficio) {
@@ -38,8 +76,7 @@ export function PublicarServicio() {
     }
     setSubmitting(true)
     try {
-      await crearServicio({
-        trabajador_id: user.id,
+      const payload = {
         oficio: form.oficio,
         categorias: form.categorias,
         descripcion: form.descripcion,
@@ -50,8 +87,13 @@ export function PublicarServicio() {
         disponibilidad: form.disponibilidad,
         galeria_trabajos: galeria,
         faq: null,
-        estado: 'activo',
-      })
+        estado: 'activo' as const,
+      }
+      if (esEdicion && editId) {
+        await actualizarServicio(editId, payload)
+      } else {
+        await crearServicio({ trabajador_id: user.id, ...payload })
+      }
       nav('/panel/mis-publicaciones')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo publicar.')
@@ -60,11 +102,19 @@ export function PublicarServicio() {
     }
   }
 
+  if (loadingEdit) {
+    return <div className="text-center text-ink-400 py-12">Cargando publicación…</div>
+  }
+
   return (
     <div className="space-y-8">
       <header>
-        <p className="font-mono text-xs uppercase text-ember">Publicar servicio</p>
-        <h1 className="font-display text-4xl font-semibold">Cuenta qué haces bien</h1>
+        <p className="font-mono text-xs uppercase text-ember">
+          {esEdicion ? 'Editar servicio' : 'Publicar servicio'}
+        </p>
+        <h1 className="font-display text-4xl font-semibold">
+          {esEdicion ? 'Actualiza tu publicación' : 'Cuenta qué haces bien'}
+        </h1>
       </header>
 
       <Stepper steps={steps} current={step} />
@@ -221,7 +271,8 @@ export function PublicarServicio() {
             </Button>
           ) : (
             <Button variant="ember" size="md" onClick={publicar} loading={submitting} disabled={submitting}>
-              <Plus className="h-4 w-4" /> Publicar
+              {esEdicion ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {esEdicion ? 'Guardar cambios' : 'Publicar'}
             </Button>
           )}
         </div>

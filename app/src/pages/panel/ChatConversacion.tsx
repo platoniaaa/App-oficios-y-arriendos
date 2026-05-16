@@ -25,6 +25,8 @@ export function ChatConversacion() {
   const [msgs, setMsgs] = useState<MensajeChat[]>([])
   const [texto, setTexto] = useState('')
   const [loading, setLoading] = useState(true)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
   const listRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -66,16 +68,38 @@ export function ChatConversacion() {
 
   async function onSend(e: React.FormEvent) {
     e.preventDefault()
-    if (!texto.trim() || !conv) return
+    if (!texto.trim() || !conv || sending) return
     const t = texto.trim()
     setTexto('')
+    setSendError(null)
+    setSending(true)
+    // Optimistic update: muestra el mensaje al instante con un id temporal
+    const tempId = `temp-${Date.now()}`
+    const optimistic: MensajeChat = {
+      id: tempId,
+      conversacionId: conv.id,
+      emisorId: user.id,
+      texto: t,
+      fecha: new Date().toISOString(),
+      leido: false,
+    }
+    setMsgs((prev) => [...prev, optimistic])
     try {
-      await enviarMensaje(conv.id, user.id, t)
-      // El insert llega también por Realtime, pero por si acaso lo agregamos optimista:
-      // (subscribe deduplica por id)
+      const real = await enviarMensaje(conv.id, user.id, t)
+      // Quita el optimistic; si Realtime ya entregó el real, no duplicar.
+      setMsgs((prev) => {
+        const sinTemp = prev.filter((m) => m.id !== tempId)
+        if (sinTemp.find((m) => m.id === real.id)) return sinTemp
+        return [...sinTemp, real]
+      })
     } catch (err) {
-      console.error(err)
+      console.error('[ChatConversacion.onSend]', err)
+      // Quita el optimistic y restaura el texto
+      setMsgs((prev) => prev.filter((m) => m.id !== tempId))
       setTexto(t)
+      setSendError(err instanceof Error ? err.message : 'No se pudo enviar el mensaje.')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -133,6 +157,11 @@ export function ChatConversacion() {
         )}
       </div>
 
+      {sendError && (
+        <div className="border-t border-rust/20 bg-rust/5 px-4 py-2 text-xs text-rust">
+          <strong>No se envió:</strong> {sendError}
+        </div>
+      )}
       <form onSubmit={onSend} className="flex items-center gap-2 border-t border-navy/10 p-3">
         <button type="button" className="rounded-full p-2 text-navy hover:bg-navy/5">
           <Paperclip className="h-5 w-5" />
@@ -142,8 +171,13 @@ export function ChatConversacion() {
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder="Escribe un mensaje…"
+          disabled={sending}
         />
-        <button type="submit" className="btn-ember btn-md rounded-full" disabled={!texto.trim()}>
+        <button
+          type="submit"
+          className="btn-ember btn-md rounded-full"
+          disabled={!texto.trim() || sending}
+        >
           <Send className="h-4 w-4" />
         </button>
       </form>
